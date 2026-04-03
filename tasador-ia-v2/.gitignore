@@ -1,0 +1,41 @@
+# TasadorIA — .gitignore
+
+# ── CREDENCIALES — NUNCA subir al repo ───────────────────────────────────────
+config/settings.php
+config/.env
+.env
+
+# ── Archivos de diagnóstico — borrar del servidor después de usar ─────────────
+test.php
+test_email.php
+test_import_db.php
+usd_fix.php
+wp_import.php        # contiene lógica de importación con auth
+
+# ── Datos privados ────────────────────────────────────────────────────────────
+data/
+logs/
+*.log
+cache/
+
+# ── Sistema ───────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# ── PHP/Composer ─────────────────────────────────────────────────────────────
+/vendor/
+composer.lock
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log
+
+# ── Backups y ZIPs ───────────────────────────────────────────────────────────
+*.bak
+*.backup
+*.old
+*.zip
