@@ -3,17 +3,61 @@
  * TasadorIA — send_email.php
  * Envía email via SMTP Brevo con sockets PHP nativos (sin PHPMailer).
  * Fallback a mail() si SMTP no está configurado.
+ *
+ * Seguridad / UX: CORS desde config, rate limit por IP, test SMTP con token,
+ * Bearer opcional (api.send_email.bearer_token), HTML escapado, sin debug en JSON por defecto.
  */
+function sendEmailApiDefaults(): array {
+    return [
+        'bearer_token'            => '',
+        'smtp_test_token'         => '',
+        'cors_origins'            => null,
+        'rate_limit_per_hour'     => 25,
+        'debug_response'          => false,
+        'expose_exception_detail' => false,
+    ];
+}
+
 ob_start();
+$settingsPath = __DIR__ . '/../config/settings.php';
+$bootCfg      = is_file($settingsPath) ? require $settingsPath : [];
+$sendApiCfg   = array_replace(sendEmailApiDefaults(), $bootCfg['api']['send_email'] ?? []);
+
+$corsList = $sendApiCfg['cors_origins'];
+if ($corsList === null) {
+    $corsList = $bootCfg['embed']['allowed_origins'] ?? [];
+}
+$wildcardCors = $corsList === [] || $corsList === ['*']
+    || (count($corsList) === 1 && ($corsList[0] ?? '') === '*');
+if ($wildcardCors) {
+    header('Access-Control-Allow-Origin: *');
+} else {
+    $reqOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($reqOrigin !== '' && in_array($reqOrigin, $corsList, true)) {
+        header('Access-Control-Allow-Origin: ' . $reqOrigin);
+        header('Vary: Origin');
+    }
+}
+
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { ob_end_clean(); http_response_code(204); exit; }
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // ?test=1 hace una conexión SMTP real y devuelve el diagnóstico
     if (isset($_GET['test'])) {
-        $cfg = require __DIR__ . '/../config/settings.php';
+        $tok = $sendApiCfg['smtp_test_token'] ?? '';
+        if ($tok === '' || !hash_equals($tok, trim((string)($_GET['token'] ?? '')))) {
+            ob_end_clean();
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'err' => 'Diagnóstico SMTP deshabilitado o token inválido. Definí api.send_email.smtp_test_token y usá ?test=1&token=…'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!is_file($settingsPath)) {
+            ob_end_clean();
+            echo json_encode(['ok' => false, 'err' => 'settings.php no encontrado'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $cfg = require $settingsPath;
         $s   = $cfg['smtp'] ?? [];
         $log = [];
         if (empty($s['host'])) { ob_end_clean(); echo json_encode(['ok'=>false,'err'=>'SMTP no configurado']); exit; }
@@ -44,11 +88,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
     ob_end_clean();
-    echo json_encode(['ok' => true, 'smtp' => 'brevo', 'php' => PHP_VERSION, 'test_url' => '?test=1']);
+    $health = ['ok' => true, 'smtp' => 'brevo', 'php' => PHP_VERSION];
+    if (($sendApiCfg['smtp_test_token'] ?? '') !== '') {
+        $health['smtp_test'] = 'GET ?test=1&token=(api.send_email.smtp_test_token)';
+    }
+    echo json_encode($health, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function jsonOut(array $d): void { ob_end_clean(); echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; }
+function jsonOut(array $d, int $http = 200): void {
+    if ($http !== 200) {
+        http_response_code($http);
+    }
+    ob_end_clean();
+    echo json_encode($d, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function h(string $s): string {
+    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function clientIp(): string {
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $xff = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        if (filter_var($xff, FILTER_VALIDATE_IP)) {
+            return $xff;
+        }
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '0';
+}
+
+/** @return bool true si se permite el envío */
+function rateLimitAllow(string $ip, int $maxPerHour): bool {
+    if ($maxPerHour <= 0) {
+        return true;
+    }
+    $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'tasador_se_' . hash('sha256', $ip) . '.rl';
+    $now  = time();
+    $fp   = @fopen($path, 'c+');
+    if (!$fp) {
+        return true;
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return true;
+    }
+    $raw = stream_get_contents($fp);
+    $t0  = $now;
+    $n   = 0;
+    if ($raw !== '' && $raw !== false) {
+        $parts = explode('|', trim($raw), 2);
+        $t0 = (int)($parts[0] ?? $now);
+        $n  = (int)($parts[1] ?? 0);
+    }
+    if ($now - $t0 > 3600) {
+        $t0 = $now;
+        $n  = 0;
+    }
+    if ($n >= $maxPerHour) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return false;
+    }
+    $n++;
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, $t0 . '|' . $n);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return true;
+}
 
 // ── SMTP nativo via sockets ───────────────────────────────────────────────────
 function smtpSend(string $to, string $toName, string $subject, string $html, string $text, array $s, string $bcc = ''): array {
@@ -130,7 +240,13 @@ function smtpSend(string $to, string $toName, string $subject, string $html, str
     $encodedTo      = $toName ? ('=?UTF-8?B?' . base64_encode($toName) . '?= <' . $to . '>') : $to;
     // Nota: BCC NO va en los headers del mensaje (es solo envelope), así queda oculto
 
+    $replyHdr = '';
+    if (!empty($s['reply_to']) && filter_var($s['reply_to'], FILTER_VALIDATE_EMAIL)) {
+        $replyHdr = 'Reply-To: <' . $s['reply_to'] . ">\r\n";
+    }
+
     $body = "From: $encodedFrom\r\n"
+          . $replyHdr
           . "To: $encodedTo\r\n"
           . "Subject: $encodedSubject\r\n"
           . "MIME-Version: 1.0\r\n"
@@ -176,54 +292,37 @@ function nativeMail(string $to, string $subject, string $html, string $text, str
     return @mail($to, mb_encode_mimeheader($subject, 'UTF-8', 'B'), $body, $headers);
 }
 
-// ── HTML del email (tema oscuro, diseño igual a la app) ───────────────────────
+// ── HTML del email ────────────────────────────────────────────────────────────
 function buildHtml(array $p): string {
-    // Paleta
-    $gold    = '#c9a84c';
-    $gold2   = '#e8c86a';
-    $dark    = '#0d0f14';
-    $card    = '#141720';
-    $card2   = '#1a1d28';
-    $border  = '#2a2d3a';
-    $text    = '#e5e7eb';
-    $muted   = '#9ca3af';
-    $green   = '#00e676';
-    $red     = '#ff5252';
+    $gold = '#c9a84c';
+    $dark = '#1a1a2e';
+    $bg   = '#f8f8fb';
 
-    // Mapeo value → label legible para datos avanzados
-    $valLabels = [
-        // AC
-        'split_1'=>'1 split','split_2'=>'2 splits','split_3'=>'3+ splits','central'=>'Central',
-        // Calef
-        'gas_natural'=>'Gas natural','losa'=>'Losa radiante','electrica'=>'Eléctrica',
-        'garrafa'=>'Garrafa','split'=>'Split/Inverter',
-        // Cocina (mismos que calef para gas/electrica ya definidos arriba)
-        'induccion'=>'Inducción',
-        // Agua caliente
-        'gas'=>'Gas (termotanque/calefón)','electrico'=>'Eléctrico',
-        'solar'=>'Panel solar','combinado'=>'Combinado',
-        // Solar
-        'parcial'=>'Sí · parcial (agua caliente)','total'=>'Sí · total (red eléctrica)',
-        // Agua corriente / internet
-        'red'=>'Red municipal','pozo'=>'Pozo / Perforación',
-        'fibra'=>'Fibra óptica','satelital'=>'Satélite','cable'=>'Cable',
-    ];
-    $fmtVal = fn(string $v): string => $valLabels[$v] ?? ucwords(str_replace('_',' ',$v));
-
-    // Estilo base para celdas de cards
-    $cardStyle = "background:$card;border-radius:10px;border:1px solid $border;";
+    $fn     = h((string)($p['fullName'] ?? ''));
+    $code   = h((string)($p['code'] ?? ''));
+    $em     = h((string)($p['email'] ?? ''));
+    $ph     = h((string)($p['phone'] ?? ''));
+    $zone   = h((string)($p['zone'] ?? ''));
+    $city   = h((string)($p['city'] ?? ''));
+    $dt     = h((string)($p['date'] ?? ''));
+    $agency = h((string)($p['agencyName'] ?? ''));
+    $web    = h((string)($p['agencyWeb'] ?? ''));
+    $pUSD   = h((string)($p['priceUSD'] ?? ''));
+    $pMin   = h((string)($p['priceMin'] ?? ''));
+    $pMax   = h((string)($p['priceMax'] ?? ''));
+    $pARS   = h((string)($p['priceARS'] ?? ''));
+    $ppm2e  = h((string)($p['ppm2'] ?? ''));
+    $arsRt  = (int)($p['ars_usd_rate'] ?? 1400);
 
     // Saludo / lead info
     $greet = $p['forUser']
-        ? "<tr><td style='padding:20px 30px 4px;font-size:14px;color:$text;line-height:1.6'>
-            Hola <strong style='color:$gold2'>{$p['fullName']}</strong>, tu tasación está lista.<br>
-            <span style='font-size:12px;color:$muted'>Cualquier consulta respondemos sin cargo. Código: <strong>{$p['code']}</strong></span>
+        ? "<tr><td style='padding:18px 30px 0;font-size:14px;color:#444;line-height:1.5'>
+            Hola <strong>$fn</strong>, tu tasación está lista.<br>
+            <span style='font-size:12px;color:#888'>Cualquier consulta respondemos sin cargo. Código: <strong>$code</strong></span>
            </td></tr>"
-        : "<tr><td style='padding:12px 24px;margin:16px 0'>
-            <div style='background:#1e1a0a;border:1px solid rgba(201,168,76,.35);border-radius:8px;padding:12px 16px;font-size:13px;color:$text'>
-              <strong style='color:$gold'>Nuevo lead:</strong> {$p['fullName']}<br>
-              <span style='color:$muted'>📧 {$p['email']} · 📞 {$p['phone']}</span>
-            </div>
+        : "<tr><td style='padding:14px 30px 0;background:#fff8e6;border-left:3px solid $gold;font-size:13px;color:#555;margin:0 30px'>
+            <strong>Nuevo lead:</strong> $fn<br>
+            📧 $em · 📞 $ph
            </td></tr>";
 
     // ── Factores ──
@@ -232,17 +331,13 @@ function buildHtml(array $p): string {
         $pct   = round(((float)($v['factor'] ?? 1) - 1) * 100, 1);
         $label = htmlspecialchars((string)($v['label'] ?? ''));
         $s     = $pct > 0 ? '+' : '';
-        if ($pct > 0) {
-            $badge = "<span style='display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;color:$green;background:rgba(0,230,118,.12)'>$s$pct%</span>";
-        } elseif ($pct < 0) {
-            $badge = "<span style='display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;color:$red;background:rgba(255,82,82,.12)'>$pct%</span>";
-        } else {
-            $badge = "<span style='display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;color:$muted;background:rgba(255,255,255,.06)'>base</span>";
-        }
-        $factRows .= "<tr style='border-bottom:1px solid $border'>
-          <td style='padding:7px 14px;font-size:12px;color:$text'>"
-              . htmlspecialchars($k) . " <span style='color:$muted;font-size:11px'>$label</span></td>
-          <td style='padding:7px 14px;text-align:right'>$badge</td>
+        $color = $pct > 0 ? '#007a40' : ($pct < 0 ? '#c00' : '#888');
+        $badge = $pct == 0 ? "<span style='font-size:10px;color:#aaa'>base</span>"
+               : "<span style='font-weight:700;color:$color'>$s$pct%</span>";
+        $factRows .= "<tr>
+          <td style='padding:6px 12px;font-size:12px;color:#333;border-bottom:1px solid #eee'>"
+              . htmlspecialchars($k) . " <span style='color:#aaa;font-size:11px'>$label</span></td>
+          <td style='padding:6px 12px;font-size:12px;text-align:right;border-bottom:1px solid #eee'>$badge</td>
         </tr>";
     }
 
@@ -250,39 +345,29 @@ function buildHtml(array $p): string {
     $compHtml = '';
     $comps = array_slice((array)($p['comparables'] ?? []), 0, 5);
     if (count($comps) > 0) {
-        $has_cross = array_reduce($comps, fn($carry, $c) => $carry || ($c['same_zone'] === false), false);
-        $crossNote = $has_cross
-            ? "<div style='font-size:11px;color:#b59c50;margin-bottom:10px;padding:7px 12px;background:rgba(201,168,76,.08);border-left:3px solid $gold;border-radius:0 6px 6px 0'>
-                ⚠ Sin comparables en la misma zona — precio similar de la ciudad
-               </div>"
-            : '';
         $compRows = '';
         foreach ($comps as $c) {
-            $lbl   = htmlspecialchars((string)($c['label'] ?? $c['address'] ?? 'Propiedad'));
-            $area  = (float)($c['area'] ?? $c['surface'] ?? 0);
-            $sup   = $area > 0 ? number_format($area, 0, ',', '.') . ' m²' : '';
-            $ppm2c = number_format((float)($c['ppm2'] ?? $c['price_per_m2'] ?? 0), 0, ',', '.');
-            $zona  = htmlspecialchars((string)($c['zone'] ?? ''));
-            $sameZ = ($c['same_zone'] ?? true) !== false;
-            $zonaTxt = $zona ? ($sameZ ? $zona : "$zona ↗") : '';
-            $priceC  = 'USD ' . number_format((float)($c['price'] ?? 0), 0, ',', '.');
-            $url     = !empty($c['url']) ? " <a href='" . htmlspecialchars($c['url']) . "' style='color:$gold;font-size:10px;text-decoration:none'>ver →</a>" : '';
-            $meta    = array_filter([$sup ? "USD $ppm2c/m²" : '', $sup, $zonaTxt]);
-            $compRows .= "<tr style='border-bottom:1px solid $border'>
-              <td style='padding:8px 14px;font-size:12px'>
-                <div style='font-weight:600;color:$text'>$lbl$url</div>
-                <div style='color:$muted;font-size:11px;margin-top:2px'>" . implode(' · ', $meta) . "</div>
+            $lbl  = htmlspecialchars((string)($c['label'] ?? $c['address'] ?? 'Propiedad'));
+            $sup  = number_format((float)($c['surface'] ?? 0), 0, ',', '.') . ' m²';
+            $ppm2c = number_format((float)($c['price_per_m2'] ?? 0), 0, ',', '.');
+            $zona = htmlspecialchars((string)($c['zone'] ?? ''));
+            $priceC = 'USD ' . number_format((float)($c['price'] ?? 0), 0, ',', '.');
+            $url  = !empty($c['url']) ? "<a href='" . htmlspecialchars($c['url']) . "' style='color:$gold;font-size:10px;text-decoration:none'>ver →</a>" : '';
+            $compRows .= "<tr style='border-bottom:1px solid #eee'>
+              <td style='padding:8px 12px;font-size:12px'>
+                <div style='font-weight:600;color:#222'>$lbl $url</div>
+                <div style='color:#aaa;font-size:11px;margin-top:2px'>$sup · USD $ppm2c/m² · $zona</div>
               </td>
-              <td style='padding:8px 14px;font-size:13px;font-weight:700;color:$gold;text-align:right;white-space:nowrap'>$priceC</td>
+              <td style='padding:8px 12px;font-size:13px;font-weight:700;color:$dark;text-align:right;white-space:nowrap'>$priceC</td>
             </tr>";
         }
         $cnt = (int)($p['market_count'] ?? count($comps));
-        $compHtml = "<tr><td style='padding:0 24px 16px'>
-          <div style='font-size:10px;color:$muted;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px'>
-            📊 Comparables en base de datos <span style='color:rgba(156,163,175,.6)'>($cnt reales)</span>
-          </div>
-          $crossNote
-          <table width='100%' cellpadding='0' cellspacing='0' style='$cardStyle'>$compRows</table>
+        $cntH = h((string)$cnt);
+        $compHtml = "<tr><td style='padding:14px 30px 0'>
+          <h3 style='margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:$dark'>
+            📊 Comparables en base de datos <span style='font-weight:400;color:#aaa'>($cntH reales)</span>
+          </h3>
+          <table width='100%' cellpadding='0' cellspacing='0' style='background:$bg;border-radius:8px'>$compRows</table>
         </td></tr>";
     }
 
@@ -290,88 +375,97 @@ function buildHtml(array $p): string {
     $poiHtml = '';
     $poiData = $p['poi'] ?? [];
     $poiCats = [
-        'escuelas'  => ['🎓', 'Escuelas'],
-        'parques'   => ['🌳', 'Parques'],
+        'escuelas'  => ['🎓', 'Escuelas / Colegios'],
+        'parques'   => ['🌳', 'Parques y plazas'],
         'hospitales'=> ['🏥', 'Salud'],
         'shoppings' => ['🛍', 'Comercial'],
         'transporte'=> ['🚌', 'Transporte'],
     ];
-    // Construir tabla de 2 columnas de POI
     $poiCells = [];
     foreach ($poiCats as $key => [$icon, $label]) {
         $items = $poiData[$key] ?? [];
         if (empty($items)) continue;
-        $list = implode('', array_map(function($item) use ($muted) {
-            $dist = isset($item['dist']) ? " <span style='color:$muted;font-size:10px'>{$item['dist']}m</span>" : '';
-            return "<div style='padding:3px 0;font-size:11px;color:#d1d5db'>" . htmlspecialchars($item['name']) . $dist . "</div>";
+        $iconH = h($icon);
+        $labelH = h($label);
+        $list = implode('', array_map(function ($item) {
+            $dist = isset($item['dist']) ? ' <span style="color:#bbb;font-size:10px">· ' . h((string)(int)$item['dist']) . ' m</span>' : '';
+            return "<div style='padding:3px 0;font-size:12px;color:#444'>" . h((string)($item['name'] ?? '')) . $dist . '</div>';
         }, $items));
-        $poiCells[] = "<td style='padding:10px 12px;vertical-align:top;width:50%'>
-            <div style='font-size:10px;font-weight:700;text-transform:uppercase;color:$gold;margin-bottom:5px;letter-spacing:.5px'>$icon $label</div>
+        $poiCells[] = "<td style='padding:8px 14px;vertical-align:top;width:50%'>
+            <div style='font-size:10px;font-weight:700;text-transform:uppercase;color:#aaa;margin-bottom:5px'>$iconH $labelH</div>
             $list
           </td>";
     }
-    if ($poiCells) {
-        // Agrupar de a 2 por fila
-        $poiTableRows = '';
-        for ($i = 0; $i < count($poiCells); $i += 2) {
-            $c1 = $poiCells[$i];
-            $c2 = isset($poiCells[$i+1]) ? $poiCells[$i+1] : "<td></td>";
-            $poiTableRows .= "<tr>$c1$c2</tr>";
+    if ($poiCells !== []) {
+        $poiRowsBuilt = '';
+        foreach (array_chunk($poiCells, 2) as $pair) {
+            $poiRowsBuilt .= '<tr>' . implode('', $pair);
+            if (count($pair) === 1) {
+                $poiRowsBuilt .= '<td style="width:50%"></td>';
+            }
+            $poiRowsBuilt .= '</tr>';
         }
-        $poiHtml = "<tr><td style='padding:0 24px 16px'>
-          <div style='font-size:10px;color:$muted;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px'>📍 Cercanías del inmueble</div>
-          <table width='100%' cellpadding='0' cellspacing='0' style='$cardStyle'>$poiTableRows</table>
+        $poiHtml = "<tr><td style='padding:14px 30px 0'>
+          <h3 style='margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:$dark'>📍 Cercanías del inmueble</h3>
+          <table width='100%' cellpadding='0' cellspacing='0' style='background:$bg;border-radius:8px;padding:8px'>
+            $poiRowsBuilt
+          </table>
         </td></tr>";
     }
 
-    // ── Datos avanzados (solo campos explícitamente elegidos) ──
+    // ── Datos avanzados ──
     $advRows = '';
     if (!empty($p['advanced'])) {
         $adv = $p['advanced'];
-        $advMap = [
-            'ac'           => ['❄️', 'Aire acondicionado'],
-            'calef'        => ['🔥', 'Calefacción'],
-            'cocina'       => ['🍳', 'Cocina'],
-            'agua_caliente'=> ['🚿', 'Agua caliente'],
-            'solar'        => ['☀️', 'Paneles solares'],
-            'eficiencia'   => ['📊', 'Eficiencia energética'],
-        ];
-        foreach ($advMap as $k => [$icon, $label]) {
-            $val = trim((string)($adv[$k] ?? ''));
-            if ($val === '' || $val === 'no') continue;
-            $valFmt = htmlspecialchars($fmtVal($val));
-            $advRows .= "<tr style='border-bottom:1px solid $border'>
-              <td style='padding:7px 14px;font-size:12px;color:$muted'>$icon $label</td>
-              <td style='padding:7px 14px;font-size:12px;font-weight:600;color:$text;text-align:right'>$valFmt</td>
-            </tr>";
+        $advMap = ['ac'=>'Aire acondicionado','calef'=>'Calefacción','solar'=>'Paneles solares',
+                   'eficiencia'=>'Eficiencia energética','cocina'=>'Cocina','agua_caliente'=>'Agua caliente'];
+        foreach ($advMap as $k => $label) {
+            if (!empty($adv[$k]) && $adv[$k] !== 'no' && $adv[$k] !== '') {
+                $advRows .= "<tr><td style='padding:5px 12px;color:#888;font-size:12px;border-bottom:1px solid #eee'>$label</td>
+                  <td style='padding:5px 12px;font-size:12px;font-weight:600;border-bottom:1px solid #eee'>"
+                  . htmlspecialchars($adv[$k]) . "</td></tr>";
+            }
         }
     }
     $advSection = $advRows
-        ? "<tr><td style='padding:0 24px 16px'>
-            <div style='font-size:10px;color:$muted;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px'>🔧 Datos adicionales</div>
-            <table width='100%' cellpadding='0' cellspacing='0' style='$cardStyle'>$advRows</table>
+        ? "<tr><td style='padding:14px 30px 0'>
+            <h3 style='margin:0 0 6px;font-size:11px;text-transform:uppercase;color:$dark'>Datos adicionales</h3>
+            <table width='100%' style='background:$bg;border-radius:8px'>$advRows</table>
            </td></tr>"
         : '';
 
-    // ARS
+    // ── ARS block ──
     $arsMin = '$ ' . number_format((float)($p['price_ars_min'] ?? 0), 0, ',', '.');
     $arsMax = '$ ' . number_format((float)($p['price_ars_max'] ?? 0), 0, ',', '.');
 
+    $propRowsRaw = trim((string)($p['propRows'] ?? ''));
+    $propSection = $propRowsRaw !== ''
+        ? "<tr><td style='padding:14px 32px 0'>
+            <h3 style='margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:$dark'>Inmueble tasado</h3>
+            <table width='100%' cellpadding='0' cellspacing='0' style='background:$bg;border-radius:8px'>$propRowsRaw</table>
+          </td></tr>"
+        : '';
+
+    $preheader = "<div style=\"display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:transparent;opacity:0\">
+  $pUSD · $zone · $city · TasadorIA
+</div>";
+
     return "<!DOCTYPE html>
 <html lang='es'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Tasación {$p['code']}</title></head>
-<body style='margin:0;padding:0;background:#060810;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif'>
+<title>Tasación $code</title></head>
+<body style='margin:0;padding:0;background:#e8e8f0;font-family:Arial,Helvetica,sans-serif'>
+$preheader
 <table width='100%' cellpadding='0' cellspacing='0' style='padding:28px 0'>
 <tr><td align='center'>
-<table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;background:$dark;border-radius:16px;overflow:hidden;border:1px solid $border'>
+<table width='580' cellpadding='0' cellspacing='0' style='max-width:580px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 32px rgba(0,0,0,.14)'>
 
   <!-- HEADER -->
-  <tr><td style='background:linear-gradient(135deg,#0a0c14 0%,#111422 100%);padding:28px 32px 24px;text-align:center;border-bottom:1px solid $border'>
+  <tr><td style='background:$dark;padding:28px 32px;text-align:center'>
     <img src='https://anperprimo.com/wp-content/uploads/2025/07/WHITE111.png' alt='ANPR Primo'
-         style='height:38px;display:block;margin:0 auto 12px'>
-    <div style='font-size:20px;color:$gold;font-family:Georgia,serif;font-weight:bold;letter-spacing:.5px'>TasadorIA</div>
-    <div style='font-size:10px;color:rgba(255,255,255,.3);letter-spacing:2.5px;margin-top:5px;text-transform:uppercase'>
-      Valuación inteligente · Argentina
+         style='height:40px;display:block;margin:0 auto 10px'>
+    <div style='font-size:22px;color:$gold;font-family:Georgia,serif;font-weight:bold;letter-spacing:.5px'>TasadorIA</div>
+    <div style='font-size:11px;color:rgba(255,255,255,.4);letter-spacing:2px;margin-top:4px;text-transform:uppercase'>
+      Valuación inteligente de propiedades · Argentina
     </div>
   </td></tr>
 
@@ -379,55 +473,62 @@ function buildHtml(array $p): string {
   {$greet}
 
   <!-- PRECIO PRINCIPAL -->
-  <tr><td style='padding:24px 24px 20px;text-align:center;border-bottom:1px solid $border'>
-    <div style='font-size:10px;color:$muted;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px'>
-      Tasación · {$p['code']} · {$p['date']}
+  <tr><td style='padding:28px 32px 24px;text-align:center;border-bottom:2px solid #f0f0f0'>
+    <div style='font-size:11px;color:#bbb;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px'>
+      Tasación · $code · $dt
     </div>
-    <div style='font-size:12px;color:$gold;font-weight:600;margin-bottom:18px'>
-      📍 {$p['zone']} · {$p['city']}
+    <div style='font-size:13px;color:$gold;font-weight:600;margin-bottom:16px'>
+      📍 $zone · $city
     </div>
-    <div style='font-size:9px;color:$muted;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px'>VALOR SUGERIDO</div>
-    <div style='font-size:54px;font-weight:900;color:$gold2;font-family:Georgia,serif;line-height:1;letter-spacing:-2px'>
-      {$p['priceUSD']}
+    <div style='font-size:10px;color:#bbb;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px'>VALOR SUGERIDO</div>
+    <div style='font-size:52px;font-weight:900;color:$dark;font-family:Georgia,serif;line-height:1;letter-spacing:-1px'>
+      $pUSD
     </div>
-    <div style='font-size:13px;color:$muted;margin-top:14px'>
-      Rango: <strong style='color:$text'>{$p['priceMin']}</strong> — <strong style='color:$text'>{$p['priceMax']}</strong>
+    <div style='font-size:14px;color:#666;margin-top:12px;font-weight:500'>
+      Rango: <strong>$pMin</strong> — <strong>$pMax</strong>
     </div>
-    <div style='font-size:11px;color:rgba(156,163,175,.6);margin-top:5px'>{$p['ppm2']}</div>
+    <div style='font-size:12px;color:#999;margin-top:5px'>$ppm2e</div>
   </td></tr>
 
   <!-- BLOQUE MERCADO: USD + ARS -->
-  <tr><td style='padding:0;border-bottom:1px solid $border'>
+  <tr><td style='padding:0'>
     <table width='100%' cellpadding='0' cellspacing='0'>
       <tr>
-        <td width='50%' style='padding:16px 14px 16px 24px;border-right:1px solid $border;vertical-align:top'>
-          <div style='font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:$muted;margin-bottom:8px'>Rango de mercado</div>
-          " . (!empty($p['market_count']) ? "<div style='font-size:10px;color:#4a9eff;margin-bottom:8px'>✓ {$p['market_count']} comparables reales</div>" : '') . "
-          <div style='font-size:11px;color:$muted;margin-bottom:3px'>Mín: <strong style='color:$text'>{$p['priceMin']}</strong></div>
-          <div style='font-size:15px;color:$gold;font-weight:800;margin-bottom:3px'>{$p['priceUSD']}</div>
-          <div style='font-size:11px;color:$muted'>Máx: <strong style='color:$text'>{$p['priceMax']}</strong></div>
+        <td width='50%' style='padding:18px 16px 18px 32px;border-right:1px solid #f0f0f0;vertical-align:top'>
+          <div style='font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin-bottom:8px'>Rango de mercado</div>
+          " . (!empty($p['market_count']) ? "<div style='font-size:11px;color:#4a8ff7;margin-bottom:8px'>✓ " . h((string)(int)$p['market_count']) . " comparables reales</div>" : '') . "
+          <div style='font-size:11px;color:#888;margin-bottom:4px'><span style='color:#aaa'>Mín:</span> <strong>$pMin</strong></div>
+          <div style='font-size:13px;color:$dark;font-weight:700;margin-bottom:4px'>$pUSD</div>
+          <div style='font-size:11px;color:#888'><span style='color:#aaa'>Máx:</span> <strong>$pMax</strong></div>
         </td>
-        <td width='50%' style='padding:16px 24px 16px 14px;vertical-align:top'>
-          <div style='font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:$muted;margin-bottom:8px'>En pesos argentinos</div>
-          <div style='font-size:20px;font-weight:800;color:$text;margin-bottom:3px'>{$p['priceARS']}</div>
-          <div style='font-size:10px;color:$muted;margin-bottom:3px'>Mín: $arsMin</div>
-          <div style='font-size:10px;color:$muted'>Máx: $arsMax</div>
-          <div style='font-size:10px;color:rgba(156,163,175,.4);margin-top:6px'>\$1.400/USD</div>
+        <td width='50%' style='padding:18px 32px 18px 16px;vertical-align:top'>
+          <div style='font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin-bottom:8px'>En pesos argentinos</div>
+          <div style='font-size:18px;font-weight:800;color:$dark;margin-bottom:4px'>$pARS</div>
+          <div style='font-size:11px;color:#aaa;margin-bottom:6px'>Mín: $arsMin</div>
+          <div style='font-size:11px;color:#aaa'>Máx: $arsMax</div>
+          <div style='font-size:10px;color:#ccc;margin-top:6px'>Tipo de cambio referencia: 1 USD ≈ {$arsRt} ARS</div>
         </td>
       </tr>
     </table>
   </td></tr>
 
   <!-- FACTORES -->
-  <tr><td style='padding:16px 24px'>
-    <div style='font-size:10px;color:$muted;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px'>⚡ Factores de ajuste</div>
-    <table width='100%' cellpadding='0' cellspacing='0' style='$cardStyle'>
+  <tr><td style='padding:14px 32px 0'>
+    <h3 style='margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:$dark'>Factores de ajuste</h3>
+    <table width='100%' cellpadding='0' cellspacing='0' style='background:$bg;border-radius:10px'>
+      <tr style='background:#ededf5'>
+        <th style='padding:6px 12px;font-size:10px;color:#999;text-align:left;font-weight:600;letter-spacing:.5px'>FACTOR</th>
+        <th style='padding:6px 12px;font-size:10px;color:#999;text-align:right;font-weight:600;letter-spacing:.5px'>AJUSTE</th>
+      </tr>
       {$factRows}
     </table>
   </td></tr>
 
   <!-- COMPARABLES -->
   {$compHtml}
+
+  <!-- INMUEBLE -->
+  {$propSection}
 
   <!-- CERCANÍAS POI -->
   {$poiHtml}
@@ -436,17 +537,17 @@ function buildHtml(array $p): string {
   {$advSection}
 
   <!-- AVISO LEGAL -->
-  <tr><td style='padding:16px 24px;border-top:1px solid $border'>
-    <p style='margin:0;font-size:10px;color:rgba(156,163,175,.5);line-height:1.7;text-align:center'>
+  <tr><td style='padding:20px 32px;border-top:1px solid #f0f0f0;margin-top:8px'>
+    <p style='margin:0;font-size:11px;color:#ccc;line-height:1.7;text-align:center'>
       ⚠ Esta tasación es orientativa y no constituye oferta ni documento legal.<br>
       Para una valuación oficial contactar a un martillero matriculado.
     </p>
   </td></tr>
 
   <!-- FOOTER -->
-  <tr><td style='background:#0a0c14;padding:16px 32px;text-align:center;border-top:1px solid $border'>
-    <div style='color:$gold;font-size:14px;font-weight:700;letter-spacing:.5px'>{$p['agencyName']}</div>
-    <div style='color:rgba(255,255,255,.25);font-size:11px;margin-top:4px'>{$p['agencyWeb']}</div>
+  <tr><td style='background:$dark;padding:18px 32px;text-align:center'>
+    <div style='color:$gold;font-size:14px;font-weight:700;letter-spacing:.5px'>$agency</div>
+    <div style='color:rgba(255,255,255,.35);font-size:11px;margin-top:4px'>$web</div>
   </td></tr>
 
 </table>
@@ -457,7 +558,24 @@ function buildHtml(array $p): string {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 try {
-    $cfg  = require_once __DIR__ . '/../config/settings.php';
+    if ($bootCfg === []) {
+        jsonOut(['success' => false, 'error' => 'Configuración no encontrada', 'request_id' => bin2hex(random_bytes(8))], 500);
+    }
+    $cfg     = $bootCfg;
+    $sendApi = array_replace(sendEmailApiDefaults(), $cfg['api']['send_email'] ?? []);
+
+    if ($sendApi['bearer_token'] !== '') {
+        $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $ok  = preg_match('/Bearer\s+(\S+)/i', $hdr, $m) && hash_equals($sendApi['bearer_token'], $m[1]);
+        if (!$ok) {
+            jsonOut(['success' => false, 'error' => 'No autorizado', 'request_id' => bin2hex(random_bytes(8))], 403);
+        }
+    }
+
+    if (!rateLimitAllow(clientIp(), (int)$sendApi['rate_limit_per_hour'])) {
+        jsonOut(['success' => false, 'error' => 'Demasiados envíos. Intentá más tarde.', 'request_id' => bin2hex(random_bytes(8))], 429);
+    }
+
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $name    = trim((string)($data['name']    ?? ''));
@@ -468,7 +586,7 @@ try {
     $prop    = $data['property'] ?? [];
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        jsonOut(['success' => false, 'error' => 'Email inválido']);
+        jsonOut(['success' => false, 'error' => 'Email inválido', 'request_id' => bin2hex(random_bytes(8))]);
     }
 
     $fullName   = trim("$name $surname") ?: 'Consulta';
@@ -477,6 +595,10 @@ try {
     $agencyWeb  = $cfg['agency_web']   ?? 'anperprimo.com';
     $smtpCfg    = $cfg['smtp'] ?? [];
     $useSmtp    = !empty($smtpCfg['host']) && !empty($smtpCfg['user']);
+
+    if (empty($smtpCfg['reply_to']) && !empty($cfg['agency_email']) && filter_var($cfg['agency_email'], FILTER_VALIDATE_EMAIL)) {
+        $smtpCfg['reply_to'] = $cfg['agency_email'];
+    }
 
     // Formatear precios
     $fmt = fn($n) => 'USD ' . number_format((float)$n, 0, ',', '.');
@@ -523,6 +645,7 @@ try {
     $params['price_ars_min'] = $result['price_ars']['min'] ?? 0;
     $params['price_ars_max'] = $result['price_ars']['max'] ?? 0;
     $params['advanced']      = $prop['advanced'] ?? [];
+    $params['ars_usd_rate']  = (int)($cfg['ars_usd_rate'] ?? 1400);
 
     $htmlAdmin = buildHtml(array_merge($params, ['forUser' => false]));
     $htmlUser  = buildHtml(array_merge($params, ['forUser' => true]));
@@ -553,6 +676,8 @@ try {
     $okAdmin = (bool)($results['admin']['ok'] ?? false);
     $okUser  = (bool)($results['user']['ok']  ?? false);
 
+    $requestId = bin2hex(random_bytes(8));
+
     // Guardar en BD
     try {
         $pdo = new PDO("mysql:host={$cfg['db']['host']};dbname={$cfg['db']['name']};charset=utf8mb4",
@@ -564,18 +689,35 @@ try {
         try {
             $pdo->prepare("INSERT INTO tasacion_leads (name,email,phone,result_code,email_sent,created_at) VALUES(?,?,?,?,?,NOW())")
                 ->execute([$fullName, $email, $phone, $code, ($okAdmin || $okUser) ? 1 : 0]);
-        } catch (\Throwable $ignored) {}
-    } catch (\Throwable $ignored) {}
+        } catch (\Throwable $e) {
+            error_log('send_email lead insert: ' . $e->getMessage());
+        }
+    } catch (\Throwable $e) {
+        error_log('send_email db: ' . $e->getMessage());
+    }
 
-    jsonOut([
+    $out = [
         'success'    => $okAdmin || $okUser,
         'sent_admin' => $okAdmin,
         'sent_user'  => $okUser,
         'method'     => $useSmtp ? 'brevo_smtp' : 'mail()',
-        'debug'      => $results,
+        'request_id' => $requestId,
         'message'    => ($okAdmin || $okUser) ? "✓ Emails enviados a $email y $toAdmin" : "Error al enviar",
-    ]);
+    ];
+    if (!empty($sendApi['debug_response'])) {
+        $out['debug'] = $results;
+    }
+    jsonOut($out);
 
 } catch (\Throwable $e) {
-    jsonOut(['success' => false, 'error' => $e->getMessage(), 'line' => $e->getLine()]);
+    error_log('send_email: ' . $e->getMessage() . ' @' . $e->getFile() . ':' . $e->getLine());
+    $ex = (bool)(($bootCfg['api']['send_email']['expose_exception_detail'] ?? false));
+    $err = ['success' => false, 'request_id' => bin2hex(random_bytes(8))];
+    if ($ex) {
+        $err['error'] = $e->getMessage();
+        $err['line'] = $e->getLine();
+    } else {
+        $err['error'] = 'Error interno';
+    }
+    jsonOut($err, 500);
 }
