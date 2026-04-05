@@ -1,0 +1,41 @@
+{
+  "name": "TasadorIA — Valuación de propiedades",
+  "short_name": "TasadorIA",
+  "description": "Tasador online de propiedades con IA · Argentina",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0d0f14",
+  "background_color": "#0d0f14",
+  "lang": "es-AR",
+  "categories": ["finance", "real estate", "utilities"],
+  "icons": [
+    { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
+    { "src": "icons/icon-96.png",  "sizes": "96x96",   "type": "image/png" },
+    { "src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Wizard de tasación"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nueva tasación",
+      "short_name": "Tasar",
+      "description": "Iniciá una nueva tasación de propiedad",
+      "url": "./?pwa=1",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}

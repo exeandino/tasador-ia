@@ -2,9 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>TasadorIA — Tasación inteligente de propiedades</title>
 <meta name="description" content="Tasación online de propiedades con inteligencia artificial. Gratis, instantánea y confiable.">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TasadorIA">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<!-- OG/Social -->
+<meta property="og:title" content="TasadorIA — Valuación de propiedades con IA">
+<meta property="og:description" content="Tasación online gratuita con inteligencia artificial. Argentina.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="icons/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -1571,6 +1588,92 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(el)updateSlider(id,['covered_area','total_area'].includes(id)?'m²':'');
   });
 });
+</script>
+
+<!-- ── PWA: Service Worker + Banner de instalación ──────────────────────── -->
+<style>
+#pwa-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:#141720;border-top:1px solid #2a2f45;
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 -4px 24px rgba(0,0,0,.5);
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+#pwa-banner.show{transform:translateY(0)}
+#pwa-banner img{width:40px;height:40px;border-radius:10px;flex-shrink:0}
+#pwa-banner-text{flex:1;font-size:13px;color:#e8e8f0;line-height:1.4}
+#pwa-banner-text strong{color:#c9a84c;display:block;margin-bottom:2px}
+#pwa-install{padding:9px 18px;background:#c9a84c;color:#0d0f14;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit}
+#pwa-dismiss{padding:8px;background:none;border:none;color:#7a7a9a;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0}
+</style>
+
+<div id="pwa-banner" role="dialog" aria-label="Instalar aplicación">
+  <img src="icons/icon-192.png" alt="TasadorIA">
+  <div id="pwa-banner-text">
+    <strong>Instalar TasadorIA</strong>
+    Agregá la app a tu pantalla de inicio para usarla sin internet
+  </div>
+  <button id="pwa-install">Instalar</button>
+  <button id="pwa-dismiss" aria-label="Cerrar">✕</button>
+</div>
+
+<script>
+// ── Registro del Service Worker ───────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.info('[TasadorIA] SW registrado:', reg.scope);
+        // Notificar al SW que puede activarse inmediatamente
+        if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+      })
+      .catch(err => console.warn('[TasadorIA] SW error:', err));
+  });
+}
+
+// ── Banner de instalación (beforeinstallprompt) ───────────────────────────────
+let _deferredPrompt = null;
+const banner   = document.getElementById('pwa-banner');
+const btnInst  = document.getElementById('pwa-install');
+const btnDismiss = document.getElementById('pwa-dismiss');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  // Mostrar banner solo si el usuario no lo descartó antes
+  if (!localStorage.getItem('pwa-dismissed')) {
+    setTimeout(() => banner.classList.add('show'), 2500);
+  }
+});
+
+btnInst.addEventListener('click', async () => {
+  if (!_deferredPrompt) return;
+  banner.classList.remove('show');
+  _deferredPrompt.prompt();
+  const { outcome } = await _deferredPrompt.userChoice;
+  console.info('[TasadorIA] PWA install:', outcome);
+  _deferredPrompt = null;
+});
+
+btnDismiss.addEventListener('click', () => {
+  banner.classList.remove('show');
+  localStorage.setItem('pwa-dismissed', '1');
+});
+
+// iOS: mostrar instrucción manual (Safari no soporta beforeinstallprompt)
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if (isIos && !isStandalone && !localStorage.getItem('pwa-dismissed')) {
+  setTimeout(() => {
+    banner.querySelector('#pwa-banner-text').innerHTML =
+      '<strong>Instalar en iPhone/iPad</strong>Tocá <strong>Compartir</strong> → <strong>"Agregar a inicio"</strong>';
+    btnInst.style.display = 'none';
+    banner.classList.add('show');
+  }, 3000);
+}
+
+// Si ya está instalada como PWA, ocultar banner para siempre
+if (isStandalone) banner.style.display = 'none';
 </script>
 </body>
 </html>
