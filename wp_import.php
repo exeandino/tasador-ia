@@ -3,11 +3,11 @@
 // tasador/wp_import.php
 // Importador web de WordPress XML — sin SSH, desde el browser
 // 1. Subir este archivo a: tasador/wp_import.php
-// 2. Abrir: https://yourdomain.com/tasador/wp_import.php
+// 2. Abrir: https://anperprimo.com/tasador/wp_import.php
 // 3. Subir el XML y hacer clic en Importar
 // BORRAR este archivo después de importar
 
-define('IMPORT_PASS', 'YOUR_ADMIN_PASSWORD');   // ← misma que admin.php
+define('IMPORT_PASS', 'anper2025');   // ← misma que admin.php
 define('BATCH',       200);
 define('MAX_EXEC',    300);           // segundos — CloudPanel permite hasta 2min
 

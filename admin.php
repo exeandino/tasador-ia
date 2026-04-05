@@ -3,7 +3,7 @@
 // tasador/admin.php — Panel unificado TasadorIA
 // Pestañas: Dashboard · Precios/Zonas · Importar XML · Leads · Tasaciones · Config
 
-define('ADMIN_PASS', 'YOUR_ADMIN_PASSWORD');
+define('ADMIN_PASS', 'anper2025');
 define('IMPORT_BATCH', 150);
 
 @ini_set('display_errors', '0');
@@ -902,7 +902,7 @@ var lastTotal    = 0;
 
 // ── Construir href de bookmarklets con el extractor universal ─────────────────
 document.addEventListener('DOMContentLoaded', function() {
-    var bmCode = "javascript:(function(){var s=document.createElement('script');s.src='https://yourdomain.com/tasador/multi_extractor.js?t='+Date.now();document.head.appendChild(s);})();";
+    var bmCode = "javascript:(function(){var s=document.createElement('script');s.src='https://anperprimo.com/tasador/multi_extractor.js?t='+Date.now();document.head.appendChild(s);})();";
     document.querySelectorAll('.bm-btn').forEach(function(btn) {
         btn.href = bmCode;
         btn.removeAttribute('onclick');

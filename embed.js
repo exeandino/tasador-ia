@@ -1,13 +1,13 @@
 /**
  * TasadorIA — Widget embebible
- * Uso: <script src="https://yourdomain.com/tasador/embed.js"></script>
+ * Uso: <script src="https://anperprimo.com/tasador/embed.js"></script>
  *      <div data-tasador></div>
  *
  * Opciones: data-altura="780" data-ciudad="santa_fe_capital" data-color="#c9a84c"
  * Open Source — MIT License
  */
 (function(){
-  const TASADOR_URL = 'https://yourdomain.com/tasador/'; // ← cambiar al instalar
+  const TASADOR_URL = 'https://anperprimo.com/tasador/'; // ← cambiar al instalar
 
   document.querySelectorAll('[data-tasador]').forEach(el=>{
     const h     = el.dataset.altura   || '780';

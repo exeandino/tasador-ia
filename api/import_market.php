@@ -16,7 +16,7 @@ $cfg = require_once __DIR__ . '/../config/settings.php';
 
 // Auth simple
 $adminKey = $_SERVER['HTTP_X_ADMIN_KEY'] ?? $_GET['key'] ?? '';
-if ($adminKey !== ($cfg['admin_pass'] ?? 'YOUR_ADMIN_PASSWORD')) {
+if ($adminKey !== ($cfg['admin_pass'] ?? 'anper2025')) {
     jsonOut(['error' => 'Unauthorized', 'hint' => 'Enviar header X-Admin-Key o ?key=']);
 }
 

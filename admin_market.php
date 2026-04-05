@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <?php
 // tasador/admin_market.php — Datos de mercado + Zonaprop en vivo
-// Acceso: https://yourdomain.com/tasador/admin_market.php
+// Acceso: https://anperprimo.com/tasador/admin_market.php
 
-define('ADMIN_PASS', 'YOUR_ADMIN_PASSWORD');
+define('ADMIN_PASS', 'anper2025');
 session_start();
 if (isset($_POST['login_pass'])) { if ($_POST['login_pass'] === ADMIN_PASS) { $_SESSION['mkt_auth'] = true; } else $loginErr = 'Contraseña incorrecta'; }
 if (isset($_GET['logout'])) { session_destroy(); header('Location: admin_market.php'); exit; }
@@ -24,7 +24,7 @@ $zoneStats   = $pdo ? dbq($pdo, "SELECT city, zone, COUNT(*) c, ROUND(AVG(price_
 $totalImported = $pdo ? (int)($pdo->query("SELECT COUNT(*) FROM market_listings WHERE active=1")->fetchColumn()) : 0;
 
 // URL del endpoint de importación
-$importUrl = ($cfg['app_url'] ?? 'https://yourdomain.com/tasador') . '/api/import_market.php';
+$importUrl = ($cfg['app_url'] ?? 'https://anperprimo.com/tasador') . '/api/import_market.php';
 
 // Zonaprop URLs por zona para Santa Fe
 $zonapropUrls = [
@@ -116,7 +116,7 @@ input[type=password]{width:100%;padding:10px 12px;background:var(--bg3);border:1
   <?php if (isset($loginErr)): ?><div style="color:var(--red);font-size:13px;margin-bottom:12px"><?=htmlspecialchars($loginErr)?></div><?php endif;?>
   <form method="POST">
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Contraseña</div>
-    <input type="password" name="login_pass" autofocus placeholder="YOUR_ADMIN_PASSWORD">
+    <input type="password" name="login_pass" autofocus placeholder="anper2025">
     <button type="submit" class="btn btn-gold" style="width:100%">Ingresar</button>
   </form>
 </div>
@@ -298,7 +298,7 @@ input[type=password]{width:100%;padding:10px 12px;background:var(--bg3);border:1
       <div class="bm-num">1</div>
       <div>
         <div style="font-size:14px;font-weight:600;margin-bottom:6px">Arrastrá este botón a tu barra de favoritos:</div>
-        <a class="bm-link" href="javascript:(function(){var s=document.createElement('script');s.src='<?=($cfg['app_url']??'https://yourdomain.com/tasador')?>/zp_extractor.js?key=<?=$adminKey?>&t='+Date.now();document.head.appendChild(s);})();" onclick="alert('¡No hacer clic! Arrastrarlo a la barra de favoritos del browser');return false;">
+        <a class="bm-link" href="javascript:(function(){var s=document.createElement('script');s.src='<?=($cfg['app_url']??'https://anperprimo.com/tasador')?>/zp_extractor.js?key=<?=$adminKey?>&t='+Date.now();document.head.appendChild(s);})();" onclick="alert('¡No hacer clic! Arrastrarlo a la barra de favoritos del browser');return false;">
           📊 Extraer → TasadorIA
         </a>
         <div style="font-size:12px;color:var(--muted);margin-top:8px">⬆ Arrastrá este botón dorado a tu barra de favoritos (bookmarks bar)</div>

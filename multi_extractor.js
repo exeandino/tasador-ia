@@ -3,8 +3,8 @@
 // Portales soportados: Zonaprop, Argenprop, Ventafe, Mercado Único, y más
 
 (function() {
-    var IMPORT_URL = 'https://yourdomain.com/tasador/api/import_market.php';
-    var ADMIN_KEY  = 'YOUR_ADMIN_PASSWORD';
+    var IMPORT_URL = 'https://anperprimo.com/tasador/api/import_market.php';
+    var ADMIN_KEY  = 'anper2025';
     var ARS_RATE   = 1450;
 
     var hostname = window.location.hostname.toLowerCase();
