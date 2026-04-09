@@ -214,33 +214,69 @@
 
   document.getElementById('__ta_close').onclick = () => overlay.remove();
 
+  // ── Extraer token de la página ML ────────────────────────────
+  function getMLToken() {
+    try {
+      // Intentar desde variables globales que ML inyecta en la página
+      const s = window.__INITIAL_STATE__ || window.__PRELOADED_STATE__ || window.__STORE__;
+      if (s?.auth?.accessToken) return s.auth.accessToken;
+      if (s?.components?.header?.token) return s.components.header.token;
+      // Buscar en scripts de la página
+      const scripts = document.querySelectorAll('script:not([src])');
+      for (const sc of scripts) {
+        const m = sc.textContent.match(/"access_token"\s*:\s*"(APP_USR-[^"]+)"/);
+        if (m) return m[1];
+      }
+    } catch(e) {}
+    return null;
+  }
+
   // ── Búsqueda API ML ──────────────────────────────────────────
   async function searchML(query) {
+    const token   = getMLToken();
+    const headers = { 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const url = `https://api.mercadolibre.com/sites/MLA/search?q=${encodeURIComponent(query)}&limit=12&sort=relevance`;
-    const r   = await fetch(url, { credentials:'include', headers:{'Accept':'application/json'} });
+    const r   = await fetch(url, { credentials:'include', headers });
     if (!r.ok) throw new Error(`API HTTP ${r.status}`);
     const d = await r.json();
     return d.results || [];
   }
 
-  // Fallback: parsear __NEXT_DATA__ de la página de resultados
+  // Fallback: parsear __NEXT_DATA__ o precios inline de la página de resultados
   async function searchViaPage(query) {
     const url = `${ML_BASE}/${encodeURIComponent(query).replace(/%20/g,'-')}_NoIndex_True`;
     const r   = await fetch(url, { credentials:'include' });
     if (!r.ok) throw new Error(`Page HTTP ${r.status}`);
     const html = await r.text();
-    const m    = html.match(/<script[^>]+id="__NEXT_DATA__"[^>]*>([^<]+)<\/script>/);
-    if (!m) throw new Error('Sin __NEXT_DATA__');
-    const nd  = JSON.parse(m[1]);
-    const res = nd?.props?.pageProps?.initialSearchData?.results
-             || nd?.props?.pageProps?.searchResult?.results
-             || nd?.props?.pageProps?.results
-             || [];
-    if (!res.length) throw new Error('0 resultados');
-    return res.map(i => ({
-      price: i.price || 0,
-      seller_address: i.seller_address || { state:{id:''} },
-    }));
+
+    // Intentar __NEXT_DATA__ (regex multilinea)
+    const m = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]+?)<\/script>/);
+    if (m) {
+      try {
+        const nd  = JSON.parse(m[1]);
+        const res = nd?.props?.pageProps?.initialSearchData?.results
+                 || nd?.props?.pageProps?.searchResult?.results
+                 || nd?.props?.pageProps?.results
+                 || nd?.props?.pageProps?.dehydratedState?.queries?.[0]?.state?.data?.results
+                 || [];
+        if (res.length) {
+          return res.map(i => ({
+            price: i.price || 0,
+            seller_address: i.seller_address || { state:{id:''} },
+          }));
+        }
+      } catch(e) {}
+    }
+
+    // Fallback: extraer precios del HTML crudo (JSON inline)
+    const priceRe = /"price"\s*:\s*(\d{3,8})(?:\.\d+)?/g;
+    const prices  = [...html.matchAll(priceRe)].map(x => parseInt(x[1])).filter(p => p > 500 && p < 50000000);
+    if (prices.length >= 3) {
+      return prices.slice(0, 20).map(p => ({ price: p, seller_address: { state:{id:''} } }));
+    }
+
+    throw new Error('Sin datos');
   }
 
   // ── Ejecución auto ────────────────────────────────────────────
