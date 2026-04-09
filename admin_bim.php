@@ -268,7 +268,7 @@ table.summary tr:hover td{background:rgba(255,255,255,.03)}
     <button class="btn" onclick="document.getElementById('help-panel').style.display='flex'" title="Ver instrucciones de actualización de precios" style="font-weight:700">? Ayuda</button>
     <button class="btn" onclick="openIccModal()" title="Actualizar precios por ICC INDEC (inflación oficial)">📈 ICC INDEC</button>
     <a id="bim-bookmarklet"
-       href="javascript:void(s=document.createElement('script'),s.src='https://anperprimo.com/tasador/ml_materials_extractor.js?v='+Date.now(),document.head.appendChild(s))"
+       href="javascript:%21async%20function%28%29%7B%22use%20strict%22%3Bconst%20e%3D%22https%3A%2F%2Flistado.mercadolibre.com.ar%22%3Bif%28%21location.hostname.includes%28%22mercadolibre.com.ar%22%29%29%7Bconst%20e%3Ddocument.createElement%28%22div%22%29%3Breturn%20e.style.cssText%3D%22%5Cn%20%20%20%20%20%20position%3Afixed%3Btop%3A0%3Bleft%3A0%3Bright%3A0%3Bbottom%3A0%3Bbackground%3Argba%280%2C0%2C0%2C.85%29%3B%5Cn%20%20%20%20%20%20z-index%3A9999999%3Bdisplay%3Aflex%3Balign-items%3Acenter%3Bjustify-content%3Acenter%3B%5Cn%20%20%20%20%20%20font-family%3Asystem-ui%2Csans-serif%3B%5Cn%20%20%20%20%22%2Ce.innerHTML%3D%27%5Cn%20%20%20%20%20%20%3Cdiv%20style%3D%22background%3A%231a1a1a%3Bborder%3A2px%20solid%20%23c9a84c%3Bborder-radius%3A14px%3Bpadding%3A32px%3Bmax-width%3A420px%3Btext-align%3Acenter%22%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22font-size%3A40px%3Bmargin-bottom%3A12px%22%3E%F0%9F%8F%97%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22font-size%3A16px%3Bfont-weight%3A700%3Bcolor%3A%23c9a84c%3Bmargin-bottom%3A8px%22%3ETasadorIA%20%E2%80%94%20Materiales%20BIM%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22color%3A%23aaa%3Bfont-size%3A13px%3Bline-height%3A1.6%3Bmargin-bottom%3A20px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20Este%20bookmarklet%20debe%20ejecutarse%20%3Cstrong%20style%3D%22color%3A%23fff%22%3Edesde%20MercadoLibre%3C%2Fstrong%3E.%3Cbr%3E%5Cn%20%20%20%20%20%20%20%20%20%20Hac%C3%A9%20clic%20en%20el%20bot%C3%B3n%20para%20ir%20a%20ML%20y%20ejecutarlo%20autom%C3%A1ticamente.%5Cn%20%20%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Ca%20href%3D%22https%3A%2F%2Fwww.mercadolibre.com.ar%2F%3Fta_bim%3D1%22%5Cn%20%20%20%20%20%20%20%20%20%20%20style%3D%22display%3Ainline-block%3Bbackground%3A%23c9a84c%3Bcolor%3A%23000%3Bfont-weight%3A700%3Bpadding%3A10px%2024px%3Bborder-radius%3A8px%3Btext-decoration%3Anone%3Bfont-size%3A14px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20Ir%20a%20MercadoLibre%20y%20ejecutar%20%E2%86%92%5Cn%20%20%20%20%20%20%20%20%3C%2Fa%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22margin-top%3A12px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%3Cbutton%20onclick%3D%22this.closest%28%5C%27div%5C%27%29.parentElement.remove%28%29%22%5Cn%20%20%20%20%20%20%20%20%20%20%20%20style%3D%22background%3Anone%3Bborder%3Anone%3Bcolor%3A%23666%3Bcursor%3Apointer%3Bfont-size%3A12px%22%3ECerrar%3C%2Fbutton%3E%5Cn%20%20%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%27%2Cvoid%20document.body.appendChild%28e%29%7Dconst%20a%3D%5B%7Bid%3A1%2Cname%3A%22Cemento%20Portland%20Normal%2050kg%22%2Cq%3A%22cemento%20portland%2050kg%22%7D%2C%7Bid%3A2%2Cname%3A%22Hierro%20en%20barra%20%C3%988mm%20%C3%97%2012m%22%2Cq%3A%22hierro%20redondo%208mm%20barra%2012m%22%7D%2C%7Bid%3A3%2Cname%3A%22Hierro%20en%20barra%20%C3%9810mm%20%C3%97%2012m%22%2Cq%3A%22hierro%20redondo%2010mm%20barra%2012m%22%7D%2C%7Bid%3A4%2Cname%3A%22Hierro%20en%20barra%20%C3%9812mm%20%C3%97%2012m%22%2Cq%3A%22hierro%20redondo%2012mm%20barra%2012m%22%7D%2C%7Bid%3A5%2Cname%3A%22Hierro%20en%20barra%20%C3%9816mm%20%C3%97%2012m%22%2Cq%3A%22hierro%20redondo%2016mm%20barra%2012m%22%7D%2C%7Bid%3A6%2Cname%3A%22Malla%20sima%2015%C3%9715%20panel%202.1%C3%974.3m%22%2Cq%3A%22malla%20sima%20electrosoldada%20panel%22%7D%2C%7Bid%3A7%2Cname%3A%22Arena%20gruesa%2030kg%22%2Cq%3A%22arena%20gruesa%20construccion%20bolsa%22%7D%2C%7Bid%3A8%2Cname%3A%22Arena%20fina%2025kg%22%2Cq%3A%22arena%20fina%20revoque%20bolsa%22%7D%2C%7Bid%3A9%2Cname%3A%22Piedra%20partida%206%2F20%2030kg%22%2Cq%3A%22piedra%20partida%20triturada%20bolsa%22%7D%2C%7Bid%3A10%2Cname%3A%22Block%20hormig%C3%B3n%2020%C3%9720%C3%9740cm%22%2Cq%3A%22block%20hormigon%2020x20x40%22%7D%2C%7Bid%3A11%2Cname%3A%22Ladrillo%20cer%C3%A1mico%20macizo%2025%C3%9712%C3%978cm%22%2Cq%3A%22ladrillo%20macizo%20ceramico%22%7D%2C%7Bid%3A12%2Cname%3A%22Ladrillo%20cer%C3%A1mico%20hueco%2018%C3%9718%C3%9733cm%22%2Cq%3A%22ladrillo%20ceramico%20hueco%2018x18x33%22%7D%2C%7Bid%3A13%2Cname%3A%22Cal%20hidratada%2030kg%22%2Cq%3A%22cal%20hidratada%20bolsa%2030kg%22%7D%2C%7Bid%3A14%2Cname%3A%22Yeso%20fino%2040kg%22%2Cq%3A%22yeso%20fino%20bolsa%20construccion%22%7D%2C%7Bid%3A15%2Cname%3A%22Adhesivo%20cer%C3%A1mico%2030kg%22%2Cq%3A%22adhesivo%20ceramico%20flexible%2030kg%22%7D%2C%7Bid%3A16%2Cname%3A%22Membrana%20asf%C3%A1ltica%204mm%22%2Cq%3A%22membrana%20asfaltica%204mm%20aluminio%22%7D%2C%7Bid%3A17%2Cname%3A%22Lana%20de%20vidrio%2050mm%20rollo%22%2Cq%3A%22lana%20de%20vidrio%20aislante%20rollo%22%7D%2C%7Bid%3A18%2Cname%3A%22Chapa%20galvanizada%20acanalada%203m%22%2Cq%3A%22chapa%20galvanizada%20acanalada%203m%22%7D%2C%7Bid%3A19%2Cname%3A%22Teja%20colonial%20cer%C3%A1mica%22%2Cq%3A%22teja%20colonial%20ceramica%22%7D%2C%7Bid%3A20%2Cname%3A%22Perfil%20C%20galvanizado%20100%C3%9750%22%2Cq%3A%22perfil%20c%20galvanizado%20100x50%22%7D%2C%7Bid%3A21%2Cname%3A%22Cable%20unipolar%202.5mm%20100m%22%2Cq%3A%22cable%20unipolar%202.5mm%20rollo%20100m%22%7D%2C%7Bid%3A22%2Cname%3A%22Cable%20unipolar%204mm%20100m%22%2Cq%3A%22cable%20unipolar%204mm%20rollo%20100m%22%7D%2C%7Bid%3A23%2Cname%3A%22Ca%C3%B1er%C3%ADa%20corrugada%2020mm%2025m%22%2Cq%3A%22ca%C3%B1eria%20corrugada%2020mm%20rollo%22%7D%2C%7Bid%3A24%2Cname%3A%22Tablero%20el%C3%A9ctrico%20domiciliario%22%2Cq%3A%22tablero%20electrico%20domiciliario%20llaves%22%7D%2C%7Bid%3A25%2Cname%3A%22Llave%20t%C3%A9rmica%2010A%22%2Cq%3A%22llave%20termica%2010%20amperes%22%7D%2C%7Bid%3A26%2Cname%3A%22Tomacorriente%20IRAM%2010A%22%2Cq%3A%22tomacorriente%20iram%2010%20amperes%22%7D%2C%7Bid%3A27%2Cname%3A%22Ca%C3%B1o%20PVC%20110mm%20desag%C3%BCe%203m%22%2Cq%3A%22ca%C3%B1o%20pvc%20110mm%20desague%203m%22%7D%2C%7Bid%3A28%2Cname%3A%22Ca%C3%B1o%20PVC%20presi%C3%B3n%2032mm%206m%22%2Cq%3A%22ca%C3%B1o%20pvc%20presion%2032mm%206m%22%7D%2C%7Bid%3A29%2Cname%3A%22Inodoro%20cer%C3%A1mica%20mochila%22%2Cq%3A%22inodoro%20ceramica%20mochila%22%7D%2C%7Bid%3A30%2Cname%3A%22Lavatorio%20ba%C3%B1o%20cer%C3%A1mica%22%2Cq%3A%22lavatorio%20ceramica%20ba%C3%B1o%22%7D%2C%7Bid%3A31%2Cname%3A%22Grifer%C3%ADa%20monocomando%22%2Cq%3A%22griferia%20monocomando%20ba%C3%B1o%22%7D%2C%7Bid%3A32%2Cname%3A%22Termotanque%20el%C3%A9ctrico%2080L%22%2Cq%3A%22termotanque%20electrico%2080%20litros%22%7D%2C%7Bid%3A33%2Cname%3A%22Porcelanato%20rectificado%2060%C3%9760%22%2Cq%3A%22porcelanato%20rectificado%2060x60%22%7D%2C%7Bid%3A34%2Cname%3A%22Cer%C3%A1mica%20piso%2035%C3%9735%22%2Cq%3A%22ceramica%20piso%20antideslizante%2035x35%20caja%22%7D%2C%7Bid%3A35%2Cname%3A%22Azulejo%2020%C3%9730%20caja%22%2Cq%3A%22azulejo%2020x30%20caja%20primera%22%7D%2C%7Bid%3A36%2Cname%3A%22Pintura%20l%C3%A1tex%20lavable%2010L%22%2Cq%3A%22pintura%20latex%20lavable%20interior%2010%20litros%22%7D%2C%7Bid%3A37%2Cname%3A%22Pintura%20exterior%20frente%204L%22%2Cq%3A%22pintura%20exterior%20frente%204%20litros%22%7D%2C%7Bid%3A38%2Cname%3A%22Puerta%20placa%20interior%2080%C3%97200%22%2Cq%3A%22puerta%20placa%20interior%2080x200%20marco%22%7D%2C%7Bid%3A39%2Cname%3A%22Ventana%20aluminio%20corrediza%22%2Cq%3A%22ventana%20aluminio%20corrediza%20vidrio%22%7D%2C%7Bid%3A40%2Cname%3A%22Ventana%20aluminio%20DVH%22%2Cq%3A%22ventana%20aluminio%20dvh%20doble%20vidrio%22%7D%2C%7Bid%3A41%2Cname%3A%22Masilla%20pl%C3%A1stica%205kg%22%2Cq%3A%22masilla%20plastica%20interior%20balde%205kg%22%7D%2C%7Bid%3A42%2Cname%3A%22Pastina%20cer%C3%A1mica%202kg%22%2Cq%3A%22pastina%20ceramica%20juntas%202kg%22%7D%2C%7Bid%3A43%2Cname%3A%27Ca%C3%B1o%20de%20cobre%20%C2%BD%22%203m%27%2Cq%3A%22ca%C3%B1o%20cobre%201%2F2%20pulgada%203m%22%7D%2C%7Bid%3A44%2Cname%3A%22Ducha%20el%C3%A9ctrica%22%2Cq%3A%22ducha%20electrica%22%7D%2C%7Bid%3A45%2Cname%3A%22Calefactor%20tiro%20balanceado%22%2Cq%3A%22calefactor%20tiro%20balanceado%20gas%22%7D%2C%7Bid%3A46%2Cname%3A%22Cocina%20gas%204%20hornallas%22%2Cq%3A%22cocina%20gas%204%20hornallas%22%7D%2C%7Bid%3A47%2Cname%3A%22Disyuntor%20termomagnetico%2020A%22%2Cq%3A%22disyuntor%20termomagnetico%2020%20amperes%22%7D%2C%7Bid%3A48%2Cname%3A%22Revestimiento%20cer%C3%A1mico%2030%C3%9760%22%2Cq%3A%22revestimiento%20ceramico%20pared%2030x60%22%7D%2C%7Bid%3A49%2Cname%3A%22Parquet%20flotante%20laminado%22%2Cq%3A%22parquet%20flotante%20laminado%20piso%22%7D%2C%7Bid%3A50%2Cname%3A%22Porcelanato%20s%C3%ADmil%20madera%22%2Cq%3A%22porcelanato%20simil%20madera%20piso%22%7D%5D%3Bfunction%20n%28e%29%7Breturn%60https%3A%2F%2Fwww.mercadolibre.com.ar%2Fjm%2Fsearch%3Fas_word%3D%24%7BencodeURIComponent%28e%29%7D%60%7Dfunction%20t%28e%29%7Bconst%20a%3D%5B...e%5D.sort%28%28e%2Ca%29%3D%3Ee-a%29%2Cn%3Da.length%3Breturn%20n%252%3D%3D0%3F%28a%5Bn%2F2-1%5D%2Ba%5Bn%2F2%5D%29%2F2%3Aa%5BMath.floor%28n%2F2%29%5D%7Dconst%20o%3De%3D%3EMath.round%28e%29.toLocaleString%28%22es-AR%22%29%3Bdocument.getElementById%28%22__ta_bim_overlay%22%29%3F.remove%28%29%3Bconst%20i%3Ddocument.createElement%28%22div%22%29%3Bi.id%3D%22__ta_bim_overlay%22%2Ci.style.cssText%3D%22%5Cn%20%20%20%20position%3Afixed%3Btop%3A0%3Bright%3A0%3Bwidth%3A420px%3Bheight%3A100vh%3Bbackground%3A%231a1a1a%3B%5Cn%20%20%20%20color%3A%23eee%3Bfont-family%3Asystem-ui%2Csans-serif%3Bfont-size%3A12px%3Bz-index%3A999999%3B%5Cn%20%20%20%20box-shadow%3A-4px%200%2024px%20rgba%280%2C0%2C0%2C.7%29%3Bdisplay%3Aflex%3Bflex-direction%3Acolumn%3B%5Cn%20%20%20%20border-left%3A3px%20solid%20%23c9a84c%3B%5Cn%20%20%22%2Ci.innerHTML%3D%60%5Cn%20%20%20%20%3Cdiv%20style%3D%22padding%3A12px%2016px%3Bbackground%3A%23252525%3Bborder-bottom%3A1px%20solid%20%23333%3Bdisplay%3Aflex%3Balign-items%3Acenter%3Bgap%3A8px%3Bflex-shrink%3A0%22%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22font-size%3A16px%22%3E%F0%9F%8F%97%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cdiv%20style%3D%22flex%3A1%22%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22font-weight%3A700%3Bcolor%3A%23c9a84c%3Bfont-size%3A13px%22%3ETasadorIA%20%E2%80%94%20Materiales%20BIM%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22color%3A%23666%3Bfont-size%3A10px%22%3EMercadoLibre%20%C2%B7%20%24%7Ba.length%7D%20materiales%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3Cbutton%20id%3D%22__ta_close%22%20style%3D%22background%3Anone%3Bborder%3Anone%3Bcolor%3A%23666%3Bfont-size%3A16px%3Bcursor%3Apointer%3Bpadding%3A2px%206px%22%3E%E2%9C%95%3C%2Fbutton%3E%5Cn%20%20%20%20%3C%2Fdiv%3E%5Cn%5Cn%20%20%20%20%5Cx3c%21--%20Tabs%20--%5Cx3e%5Cn%20%20%20%20%3Cdiv%20style%3D%22display%3Aflex%3Bborder-bottom%3A1px%20solid%20%23333%3Bflex-shrink%3A0%22%3E%5Cn%20%20%20%20%20%20%3Cbutton%20id%3D%22__ta_tab_auto%22%20onclick%3D%22__ta_switchTab%28%27auto%27%29%22%5Cn%20%20%20%20%20%20%20%20style%3D%22flex%3A1%3Bpadding%3A8px%3Bbackground%3A%231a1a1a%3Bborder%3Anone%3Bborder-bottom%3A2px%20solid%20%23c9a84c%3Bcolor%3A%23c9a84c%3Bfont-size%3A11px%3Bfont-weight%3A700%3Bcursor%3Apointer%22%3E%5Cn%20%20%20%20%20%20%20%20%E2%96%B6%20Auto%20%28%24%7Ba.length%7D%29%5Cn%20%20%20%20%20%20%3C%2Fbutton%3E%5Cn%20%20%20%20%20%20%3Cbutton%20id%3D%22__ta_tab_links%22%20onclick%3D%22__ta_switchTab%28%27links%27%29%22%5Cn%20%20%20%20%20%20%20%20style%3D%22flex%3A1%3Bpadding%3A8px%3Bbackground%3A%23111%3Bborder%3Anone%3Bborder-bottom%3A2px%20solid%20transparent%3Bcolor%3A%23666%3Bfont-size%3A11px%3Bcursor%3Apointer%22%3E%5Cn%20%20%20%20%20%20%20%20%F0%9F%94%97%20Links%20por%20material%5Cn%20%20%20%20%20%20%3C%2Fbutton%3E%5Cn%20%20%20%20%3C%2Fdiv%3E%5Cn%5Cn%20%20%20%20%5Cx3c%21--%20Panel%20Auto%20--%5Cx3e%5Cn%20%20%20%20%3Cdiv%20id%3D%22__ta_panel_auto%22%20style%3D%22display%3Aflex%3Bflex-direction%3Acolumn%3Bflex%3A1%3Boverflow%3Ahidden%22%3E%5Cn%20%20%20%20%20%20%3Cdiv%20style%3D%22padding%3A10px%2014px%3Bbackground%3A%231e1e1e%3Bborder-bottom%3A1px%20solid%20%23333%3Bflex-shrink%3A0%22%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22display%3Aflex%3Bgap%3A8px%3Bmargin-bottom%3A8px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22flex%3A1%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22font-size%3A9px%3Bcolor%3A%23666%3Bmargin-bottom%3A3px%3Btext-transform%3Auppercase%22%3EUSD%2FARS%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%3Cinput%20id%3D%22__ta_usd%22%20type%3D%22number%22%20value%3D%221400%22%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20style%3D%22width%3A100%25%3Bbackground%3A%232a2a2a%3Bborder%3A1px%20solid%20%23444%3Bcolor%3A%23eee%3Bpadding%3A5px%208px%3Bborder-radius%3A5px%3Bfont-size%3A12px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22flex%3A2%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%3Cdiv%20style%3D%22font-size%3A9px%3Bcolor%3A%23666%3Bmargin-bottom%3A3px%3Btext-transform%3Auppercase%22%3EServidor%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%3Cinput%20id%3D%22__ta_srv%22%20type%3D%22text%22%20value%3D%22https%3A%2F%2Fanperprimo.com%2Ftasador%22%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20style%3D%22width%3A100%25%3Bbackground%3A%232a2a2a%3Bborder%3A1px%20solid%20%23444%3Bcolor%3A%23eee%3Bpadding%3A5px%208px%3Bborder-radius%3A5px%3Bfont-size%3A11px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Cbutton%20id%3D%22__ta_run%22%5Cn%20%20%20%20%20%20%20%20%20%20style%3D%22width%3A100%25%3Bpadding%3A8px%3Bbackground%3A%23c9a84c%3Bcolor%3A%23000%3Bfont-weight%3A700%3Bborder%3Anone%3Bborder-radius%3A7px%3Bcursor%3Apointer%3Bfont-size%3A12px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%E2%96%B6%20Buscar%20todos%20los%20materiales%20%28%24%7Ba.length%7D%29%5Cn%20%20%20%20%20%20%20%20%3C%2Fbutton%3E%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3Cdiv%20id%3D%22__ta_progress%22%20style%3D%22padding%3A6px%2014px%3Bfont-size%3A10px%3Bcolor%3A%23c9a84c%3Bdisplay%3Anone%3Bflex-shrink%3A0%22%3E%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3Cdiv%20id%3D%22__ta_log%22%20style%3D%22flex%3A1%3Boverflow-y%3Aauto%3Bpadding%3A6px%2014px%22%3E%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3Cdiv%20id%3D%22__ta_footer%22%20style%3D%22display%3Anone%3Bpadding%3A10px%2014px%3Bbackground%3A%231e1e1e%3Bborder-top%3A1px%20solid%20%23333%3Bflex-shrink%3A0%22%3E%5Cn%20%20%20%20%20%20%20%20%3Cdiv%20id%3D%22__ta_summary%22%20style%3D%22font-size%3A11px%3Bcolor%3A%23888%3Bmargin-bottom%3A8px%22%3E%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%20%20%3Cbutton%20id%3D%22__ta_save%22%5Cn%20%20%20%20%20%20%20%20%20%20style%3D%22width%3A100%25%3Bpadding%3A8px%3Bbackground%3A%234caf50%3Bcolor%3A%23fff%3Bfont-weight%3A700%3Bborder%3Anone%3Bborder-radius%3A7px%3Bcursor%3Apointer%3Bfont-size%3A12px%22%3E%5Cn%20%20%20%20%20%20%20%20%20%20%F0%9F%92%BE%20Guardar%20en%20BIM%5Cn%20%20%20%20%20%20%20%20%3C%2Fbutton%3E%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%3C%2Fdiv%3E%5Cn%5Cn%20%20%20%20%5Cx3c%21--%20Panel%20Links%20--%5Cx3e%5Cn%20%20%20%20%3Cdiv%20id%3D%22__ta_panel_links%22%20style%3D%22display%3Anone%3Bflex%3A1%3Boverflow%3Ahidden%3Bflex-direction%3Acolumn%22%3E%5Cn%20%20%20%20%20%20%3Cdiv%20style%3D%22padding%3A8px%2014px%3Bbackground%3A%231e1e1e%3Bborder-bottom%3A1px%20solid%20%23333%3Bflex-shrink%3A0%3Bfont-size%3A10px%3Bcolor%3A%23888%22%3E%5Cn%20%20%20%20%20%20%20%20Hac%C3%A9%20clic%20en%20%F0%9F%94%8D%20para%20ver%20los%20resultados%20en%20ML%20%C2%B7%20Los%20precios%20se%20actualizan%20al%20buscar%20en%20modo%20Auto%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%20%20%20%20%3Cdiv%20id%3D%22__ta_links_list%22%20style%3D%22flex%3A1%3Boverflow-y%3Aauto%3Bpadding%3A6px%2014px%22%3E%3C%2Fdiv%3E%5Cn%20%20%20%20%3C%2Fdiv%3E%5Cn%20%20%60%2Cdocument.body.appendChild%28i%29%2Cwindow.__ta_switchTab%3Dfunction%28e%29%7Bconst%20a%3D%22auto%22%3D%3D%3De%3Bdocument.getElementById%28%22__ta_panel_auto%22%29.style.display%3Da%3F%22flex%22%3A%22none%22%2Cdocument.getElementById%28%22__ta_panel_auto%22%29.style.flexDirection%3D%22column%22%2Cdocument.getElementById%28%22__ta_panel_links%22%29.style.display%3Da%3F%22none%22%3A%22flex%22%2Cdocument.getElementById%28%22__ta_panel_links%22%29.style.flexDirection%3D%22column%22%2Cdocument.getElementById%28%22__ta_tab_auto%22%29.style.cssText%3D%60flex%3A1%3Bpadding%3A8px%3Bbackground%3A%231a1a1a%3Bborder%3Anone%3Bborder-bottom%3A2px%20solid%20%24%7Ba%3F%22%23c9a84c%22%3A%22transparent%22%7D%3Bcolor%3A%24%7Ba%3F%22%23c9a84c%22%3A%22%23666%22%7D%3Bfont-size%3A11px%3Bfont-weight%3A%24%7Ba%3F%22700%22%3A%22400%22%7D%3Bcursor%3Apointer%60%2Cdocument.getElementById%28%22__ta_tab_links%22%29.style.cssText%3D%60flex%3A1%3Bpadding%3A8px%3Bbackground%3A%23111%3Bborder%3Anone%3Bborder-bottom%3A2px%20solid%20%24%7Ba%3F%22transparent%22%3A%22%23c9a84c%22%7D%3Bcolor%3A%24%7Ba%3F%22%23666%22%3A%22%23c9a84c%22%7D%3Bfont-size%3A11px%3Bfont-weight%3A%24%7Ba%3F%22400%22%3A%22700%22%7D%3Bcursor%3Apointer%60%7D%3Bconst%20r%3Ddocument.getElementById%28%22__ta_links_list%22%29%3Basync%20function%20l%28e%29%7Bconst%20a%3D%60https%3A%2F%2Fapi.mercadolibre.com%2Fsites%2FMLA%2Fsearch%3Fq%3D%24%7BencodeURIComponent%28e%29%7D%26limit%3D12%26sort%3Drelevance%60%2Cn%3Dawait%20fetch%28a%2C%7Bcredentials%3A%22include%22%2Cheaders%3A%7BAccept%3A%22application%2Fjson%22%7D%7D%29%3Bif%28%21n.ok%29throw%20new%20Error%28%60API%20HTTP%20%24%7Bn.status%7D%60%29%3Breturn%28await%20n.json%28%29%29.results%7C%7C%5B%5D%7Dasync%20function%20s%28a%29%7Bconst%20n%3D%60%24%7Be%7D%2F%24%7BencodeURIComponent%28a%29.replace%28%2F%2520%2Fg%2C%22-%22%29%7D_NoIndex_True%60%2Ct%3Dawait%20fetch%28n%2C%7Bcredentials%3A%22include%22%7D%29%3Bif%28%21t.ok%29throw%20new%20Error%28%60Page%20HTTP%20%24%7Bt.status%7D%60%29%3Bconst%20o%3D%28await%20t.text%28%29%29.match%28%2F%3Cscript%5B%5E%3E%5D%2Bid%3D%22__NEXT_DATA__%22%5B%5E%3E%5D%2A%3E%28%5B%5E%3C%5D%2B%29%3C%5C%2Fscript%3E%2F%29%3Bif%28%21o%29throw%20new%20Error%28%22Sin%20__NEXT_DATA__%22%29%3Bconst%20i%3DJSON.parse%28o%5B1%5D%29%2Cr%3Di%3F.props%3F.pageProps%3F.initialSearchData%3F.results%7C%7Ci%3F.props%3F.pageProps%3F.searchResult%3F.results%7C%7Ci%3F.props%3F.pageProps%3F.results%7C%7C%5B%5D%3Bif%28%21r.length%29throw%20new%20Error%28%220%20resultados%22%29%3Breturn%20r.map%28e%3D%3E%28%7Bprice%3Ae.price%7C%7C0%2Cseller_address%3Ae.seller_address%7C%7C%7Bstate%3A%7Bid%3A%22%22%7D%7D%7D%29%29%7Da.forEach%28e%3D%3E%7Bconst%20a%3Ddocument.createElement%28%22div%22%29%3Ba.id%3D%60__ta_link_%24%7Be.id%7D%60%2Ca.style.cssText%3D%22padding%3A5px%200%3Bborder-bottom%3A1px%20solid%20%232a2a2a%3Bdisplay%3Aflex%3Balign-items%3Acenter%3Bgap%3A6px%22%2Ca.innerHTML%3D%60%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22font-size%3A10px%3Bcolor%3A%23555%3Bwidth%3A18px%3Btext-align%3Aright%3Bflex-shrink%3A0%22%3E%24%7Be.id%7D%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22flex%3A1%3Bfont-size%3A11px%3Boverflow%3Ahidden%3Btext-overflow%3Aellipsis%3Bwhite-space%3Anowrap%22%20title%3D%22%24%7Be.name%7D%22%3E%24%7Be.name%7D%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20id%3D%22__ta_lp_%24%7Be.id%7D%22%20style%3D%22font-size%3A10px%3Bcolor%3A%23555%3Bwhite-space%3Anowrap%22%3E%E2%80%94%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Ca%20href%3D%22%24%7Bn%28e.q%29%7D%22%20target%3D%22_blank%22%20rel%3D%22noopener%22%5Cn%20%20%20%20%20%20%20%20style%3D%22background%3A%23fff1%3Bborder%3A1px%20solid%20%23444%3Bcolor%3A%23c9a84c%3Bpadding%3A2px%207px%3Bborder-radius%3A4px%3Bfont-size%3A10px%3Btext-decoration%3Anone%3Bflex-shrink%3A0%3Bwhite-space%3Anowrap%22%3E%5Cn%20%20%20%20%20%20%20%20%F0%9F%94%8D%20ML%5Cn%20%20%20%20%20%20%3C%2Fa%3E%5Cn%20%20%20%20%60%2Cr.appendChild%28a%29%7D%29%2Cdocument.getElementById%28%22__ta_close%22%29.onclick%3D%28%29%3D%3Ei.remove%28%29%3Bconst%20d%3D%5B%5D%2Cc%3Ddocument.getElementById%28%22__ta_log%22%29%2Cp%3Ddocument.getElementById%28%22__ta_progress%22%29%2Cm%3Ddocument.getElementById%28%22__ta_footer%22%29%2Cx%3Ddocument.getElementById%28%22__ta_summary%22%29%3Bfunction%20u%28e%2Ca%2Ct%2Ci%2Cr%29%7Bconst%20l%3Ddocument.createElement%28%22div%22%29%3Bl.style.cssText%3D%22display%3Agrid%3Bgrid-template-columns%3A14px%201fr%2070px%2070px%2040px%3Bgap%3A4px%3Bpadding%3A3px%200%3Bborder-bottom%3A1px%20solid%20%232a2a2a%3Balign-items%3Acenter%22%2Cl.innerHTML%3D%60%5Cn%20%20%20%20%20%20%3Ca%20href%3D%22%24%7Bn%28a.q%29%7D%22%20target%3D%22_blank%22%20title%3D%22Ver%20en%20ML%22%20style%3D%22color%3A%23c9a84c%3Btext-decoration%3Anone%3Bfont-size%3A11px%22%3E%24%7Be%7D%3C%2Fa%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22overflow%3Ahidden%3Btext-overflow%3Aellipsis%3Bwhite-space%3Anowrap%3Bfont-size%3A10px%22%20title%3D%22%24%7Ba.name%7D%22%3E%24%7Ba.name%7D%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22text-align%3Aright%3Bcolor%3A%23555%3Bfont-size%3A10px%22%3E%E2%80%94%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22text-align%3Aright%3Bfont-weight%3A600%3Bfont-size%3A10px%3Bcolor%3A%24%7Br%7D%22%3E%24%7Bt%3F%22%24%22%2Bo%28t%29%3A%27%3Cspan%20style%3D%22color%3A%23f44336%22%3Eerror%3C%2Fspan%3E%27%7D%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22text-align%3Aright%3Bfont-size%3A10px%3Bcolor%3A%24%7Br%7D%22%3E%24%7Bi%7D%3C%2Fspan%3E%5Cn%20%20%20%20%60%3Bconst%20s%3Ddocument.getElementById%28%60__ta_lp_%24%7Ba.id%7D%60%29%3Bs%26%26t%26%26%28s.textContent%3D%22%24%22%2Bo%28t%29%29%2Cc.appendChild%28l%29%2Cc.scrollTop%3Dc.scrollHeight%7Dfunction%20g%28e%2Ca%29%7Bconst%20t%3Ddocument.createElement%28%22div%22%29%3Bt.style.cssText%3D%22display%3Agrid%3Bgrid-template-columns%3A14px%201fr%20auto%3Bgap%3A4px%3Bpadding%3A3px%200%3Bborder-bottom%3A1px%20solid%20%232a2a2a%3Balign-items%3Acenter%22%2Ct.innerHTML%3D%60%5Cn%20%20%20%20%20%20%3Ca%20href%3D%22%24%7Bn%28e.q%29%7D%22%20target%3D%22_blank%22%20title%3D%22Buscar%20manualmente%20en%20ML%22%20style%3D%22color%3A%23f44336%3Btext-decoration%3Anone%3Bfont-size%3A11px%22%3E%E2%9C%97%3C%2Fa%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22overflow%3Ahidden%3Btext-overflow%3Aellipsis%3Bwhite-space%3Anowrap%3Bfont-size%3A10px%3Bcolor%3A%23f44336%22%20title%3D%22%24%7Be.name%7D%22%3E%24%7Be.name%7D%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3Cspan%20style%3D%22font-size%3A9px%3Bcolor%3A%23f44336%22%3E%24%7Ba%7D%3C%2Fspan%3E%5Cn%20%20%20%20%60%2Cc.appendChild%28t%29%2Cc.scrollTop%3Dc.scrollHeight%7Ddocument.getElementById%28%22__ta_run%22%29.onclick%3Dasync%20function%28%29%7Bthis.disabled%3D%210%2Cthis.textContent%3D%22%E2%8F%B3%20Buscando%E2%80%A6%22%2Cp.style.display%3D%22block%22%2Cc.innerHTML%3D%27%5Cn%20%20%20%20%20%20%3Cdiv%20style%3D%22display%3Agrid%3Bgrid-template-columns%3A14px%201fr%2070px%2070px%2040px%3Bgap%3A4px%3Bcolor%3A%23555%3Bpadding%3A3px%200%3Bborder-bottom%3A1px%20solid%20%23333%3Bfont-size%3A9px%3Btext-transform%3Auppercase%3Bmargin-bottom%3A2px%22%3E%5Cn%20%20%20%20%20%20%20%20%3Cspan%3E%3C%2Fspan%3E%3Cspan%3EMaterial%3C%2Fspan%3E%3Cspan%20style%3D%22text-align%3Aright%22%3EAnt.%3C%2Fspan%3E%3Cspan%20style%3D%22text-align%3Aright%22%3ENuevo%3C%2Fspan%3E%3Cspan%20style%3D%22text-align%3Aright%22%3E%CE%94%3C%2Fspan%3E%5Cn%20%20%20%20%20%20%3C%2Fdiv%3E%27%2Cd.length%3D0%3Blet%20e%3D0%2Cn%3D0%2Co%3D0%3Bfor%28let%20i%3D0%3Bi%3Ca.length%3Bi%2B%2B%29%7Bconst%20r%3Da%5Bi%5D%3Bp.innerHTML%3D%60%5B%24%7Bi%2B1%7D%2F%24%7Ba.length%7D%5D%20%3Cstrong%3E%24%7Br.name%7D%3C%2Fstrong%3E%60%3Blet%20c%3Dnull%3Btry%7Bc%3Dawait%20l%28r.q%29%7Dcatch%28e%29%7Btry%7Bc%3Dawait%20s%28r.q%29%7Dcatch%28e%29%7Bn%2B%2B%2Cg%28r%2Ce.message%29%2Cawait%20new%20Promise%28e%3D%3EsetTimeout%28e%2C200%29%29%3Bcontinue%7D%7Dconst%20m%3Dc.map%28e%3D%3Ee.price%7C%7C0%29.filter%28e%3D%3Ee%3E100%29%3Bif%28%21m.length%29%7Bo%2B%2B%2Cg%28r%2C%22sin%20resultados%22%29%2Cawait%20new%20Promise%28e%3D%3EsetTimeout%28e%2C200%29%29%3Bcontinue%7Dconst%20x%3DMath.round%28t%28m%29%29%2Cf%3Dc.map%28e%3D%3E%5B%22AR-C%22%2C%22AR-B%22%5D.includes%28e.seller_address%3F.state%3F.id%7C%7C%22%22%29%3F9%3A0%29%2Cb%3DMath.round%28f.reduce%28%28e%2Ca%29%3D%3Ee%2Ba%2C0%29%2Ff.length%2A10%29%2F10%3Be%2B%2B%2Cd.push%28%7Bid%3Ar.id%2Cmaterial%3Ar.name%2Cprice_ars%3Ax%2Cflete_pct%3Ab%2Ccount%3Am.length%2Cquery%3Ar.q%7D%29%2Cu%28%22%E2%9C%93%22%2Cr%2Cx%2Cb%3E0%3F%60%2B%24%7Bb%7D%25%60%3A%22%E2%80%94%22%2C%22%234caf50%22%29%2Cawait%20new%20Promise%28e%3D%3EsetTimeout%28e%2C350%29%29%7Dp.innerHTML%3D%60%3Cstrong%20style%3D%22color%3A%234caf50%22%3E%E2%9C%93%20Completado%3C%2Fstrong%3E%20%E2%80%94%20%24%7Be%7D%20encontrados%20%C2%B7%20%24%7Bn%7D%20errores%20%C2%B7%20%24%7Bo%7D%20sin%20datos%60%2Cd.length%3E0%26%26%28x.textContent%3D%60%24%7Bd.length%7D%20materiales%20listos%20para%20guardar%60%2Cm.style.display%3D%22block%22%29%2Cthis.disabled%3D%211%2Cthis.textContent%3D%22%F0%9F%94%84%20Buscar%20de%20nuevo%22%7D%2Cdocument.getElementById%28%22__ta_save%22%29.onclick%3Dasync%20function%28%29%7Bthis.disabled%3D%210%2Cthis.textContent%3D%22%E2%8F%B3%20Guardando%E2%80%A6%22%3Bconst%20e%3Ddocument.getElementById%28%22__ta_srv%22%29.value.replace%28%2F%5C%2F%24%2F%2C%22%22%29%2Ca%3DparseFloat%28document.getElementById%28%22__ta_usd%22%29.value%29%7C%7C1400%3Btry%7Bconst%20n%3Dawait%20fetch%28%60%24%7Be%7D%2Fapi%2Fsave_material_prices.php%60%2C%7Bmethod%3A%22POST%22%2Cheaders%3A%7B%22Content-Type%22%3A%22application%2Fjson%22%7D%2Cbody%3AJSON.stringify%28%7Bprices%3Ad%2Cusd_rate%3Aa%7D%29%2Ccredentials%3A%22omit%22%7D%29%2Ct%3Dawait%20n.json%28%29%3Bif%28%21t.success%29throw%20new%20Error%28t.error%7C%7C%22Error%22%29%3Bx.innerHTML%3D%60%3Cspan%20style%3D%22color%3A%234caf50%22%3E%E2%9C%93%20%24%7Bt.saved%7D%20materiales%20%C2%B7%20%24%7Bt.zones_updated%7D%20zonas%20actualizadas%3C%2Fspan%3E%60%2Cthis.textContent%3D%22%E2%9C%93%20Guardado%22%2Cthis.style.background%3D%22%23388e3c%22%7Dcatch%28e%29%7Bx.innerHTML%3D%60%3Cspan%20style%3D%22color%3A%23f44336%22%3E%E2%9A%A0%20%24%7Be.message%7D%3C%2Fspan%3E%60%2Cthis.disabled%3D%211%2Cthis.textContent%3D%22%F0%9F%92%BE%20Reintentar%22%7D%7D%2Clocation.search.includes%28%22ta_bim%3D1%22%29%26%26setTimeout%28%28%29%3D%3Edocument.getElementById%28%22__ta_run%22%29%3F.click%28%29%2C800%29%7D%28%29%3B"
        style="text-decoration:none"
        title="⭐ BOOKMARKLET — Arrastrá a favoritos → andá a mercadolibre.com.ar → clic → extrae precios automáticamente">
       <button class="btn" style="cursor:grab;border-color:#c9a84c;color:#c9a84c">
@@ -1150,10 +1150,79 @@ async function mlSearch(query) {
 }
 
 // ── ICC INDEC ─────────────────────────────────────────────────
+// Datos ICC pendientes de aplicar (guardados entre preview y apply)
+let _iccData = null;
+
+function iccPreviewHtml(j) {
+  const sign  = j.ratio_pct >= 0 ? '+' : '';
+  const color = j.ratio_pct > 0 ? '#f44336' : j.ratio_pct < 0 ? 'var(--green)' : 'var(--muted)';
+  const src   = j.icc_current?.source === 'manual' ? ' (ingresado manualmente)' : ` · serie: ${j.icc_current?.series_id||''}`;
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--bg);border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ICC Base</div>
+        <div style="font-size:20px;font-weight:700;margin-top:4px">${j.icc_base.value}</div>
+        <div style="font-size:10px;color:var(--muted)">${j.icc_base.date || 'fecha anterior'}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ICC Actual</div>
+        <div style="font-size:20px;font-weight:700;margin-top:4px">${j.icc_current.value}</div>
+        <div style="font-size:10px;color:var(--muted)">${j.icc_current.date}${src}</div>
+      </div>
+    </div>
+    <div style="background:var(--bg);border-radius:8px;padding:14px;text-align:center;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted)">Ajuste a aplicar a todos los materiales</div>
+      <div style="font-size:32px;font-weight:800;color:${color};margin:6px 0">${sign}${j.ratio_pct}%</div>
+      <div style="font-size:11px;color:var(--muted)">× ${j.ratio.toFixed(4)} · ${j.materials_count} materiales</div>
+    </div>
+    ${j.preview?.length ? `
+    <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Vista previa (primeros 10):</div>
+    <div style="max-height:140px;overflow-y:auto;font-size:11px;font-family:monospace">
+      ${j.preview.map(p=>`<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border)">
+        <span style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+        <span style="color:var(--muted)">$${p.old_ars.toLocaleString('es-AR')}</span>
+        <span style="font-weight:600">$${p.new_ars.toLocaleString('es-AR')}</span>
+        <span style="color:${p.delta_pct>0?'#f44336':'var(--green)'}">${p.delta_pct>0?'+':''}${p.delta_pct}%</span>
+      </div>`).join('')}
+    </div>` : ''}`;
+}
+
+function iccManualForm(errorMsg) {
+  const now = new Date();
+  const defDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  return `
+    <div style="background:rgba(244,67,54,.08);border:1px solid rgba(244,67,54,.3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#f44336">
+      ⚠ ${errorMsg}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+      Ingresá los valores del <strong style="color:var(--text)">Cuadro 1 — Materiales</strong> del
+      <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-5-33" target="_blank"
+         style="color:var(--gold)">reporte ICC del INDEC ↗</a>.<br>
+      El índice base es 1993=100.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase">ICC Materiales actual</label>
+        <input id="icc-manual-val" type="number" step="0.01" placeholder="ej: 285340.71"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase">Período (año-mes)</label>
+        <input id="icc-manual-date" type="month" value="${defDate}"
+          style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:13px">
+      </div>
+    </div>
+    <button onclick="submitManualIcc()"
+      style="width:100%;padding:9px;background:var(--gold);border:none;color:#000;font-weight:700;border-radius:7px;cursor:pointer;font-size:13px">
+      📊 Calcular ajuste con estos valores
+    </button>`;
+}
+
 async function openIccModal() {
   const modal  = document.getElementById('icc-modal');
   const body   = document.getElementById('icc-body');
   const footer = document.getElementById('icc-footer');
+  _iccData = null;
   modal.style.display = 'flex';
   footer.style.display = 'none';
   body.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Consultando INDEC (datos.gob.ar)…</div>';
@@ -1163,8 +1232,7 @@ async function openIccModal() {
     const j = await r.json();
 
     if (!j.success) {
-      body.innerHTML = `<div style="color:#f44336">⚠ ${j.error || 'Error al conectar con INDEC'}</div>
-        <div style="color:var(--muted);font-size:11px;margin-top:8px">${j.tip || ''}</div>`;
+      body.innerHTML = iccManualForm(j.error || 'No se pudo conectar con datos.gob.ar.');
       return;
     }
 
@@ -1176,47 +1244,51 @@ async function openIccModal() {
       return;
     }
 
-    const sign  = j.ratio_pct >= 0 ? '+' : '';
-    const color = j.ratio_pct > 0 ? '#f44336' : j.ratio_pct < 0 ? 'var(--green)' : 'var(--muted)';
-
-    body.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-        <div style="background:var(--bg);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ICC Base</div>
-          <div style="font-size:20px;font-weight:700;margin-top:4px">${j.icc_base.value}</div>
-          <div style="font-size:10px;color:var(--muted)">${j.icc_base.date || 'fecha anterior'}</div>
-        </div>
-        <div style="background:var(--bg);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">ICC Actual</div>
-          <div style="font-size:20px;font-weight:700;margin-top:4px">${j.icc_current.value}</div>
-          <div style="font-size:10px;color:var(--muted)">${j.icc_current.date}</div>
-        </div>
-      </div>
-      <div style="background:var(--bg);border-radius:8px;padding:14px;text-align:center;margin-bottom:14px">
-        <div style="font-size:11px;color:var(--muted)">Ajuste a aplicar a todos los materiales</div>
-        <div style="font-size:32px;font-weight:800;color:${color};margin:6px 0">${sign}${j.ratio_pct}%</div>
-        <div style="font-size:11px;color:var(--muted)">× ${j.ratio.toFixed(4)} · ${j.materials_count} materiales</div>
-      </div>
-      ${j.preview.length ? `
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Vista previa (primeros 10):</div>
-      <div style="max-height:140px;overflow-y:auto;font-size:11px;font-family:monospace">
-        ${j.preview.map(p=>`<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border)">
-          <span style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
-          <span style="color:var(--muted)">$${p.old_ars.toLocaleString('es-AR')}</span>
-          <span style="font-weight:600">$${p.new_ars.toLocaleString('es-AR')}</span>
-          <span style="color:${p.delta_pct>0?'#f44336':'var(--green)'}">${p.delta_pct>0?'+':''}${p.delta_pct}%</span>
-        </div>`).join('')}
-      </div>` : ''}`;
-
+    _iccData = { preview: false };
+    body.innerHTML = iccPreviewHtml(j);
     footer.style.display = 'flex';
 
   } catch(e) {
-    body.innerHTML = `<div style="color:#f44336">⚠ Error: ${e.message}</div>`;
+    body.innerHTML = iccManualForm('Error de red: ' + e.message);
+  }
+}
+
+async function submitManualIcc() {
+  const val  = parseFloat(document.getElementById('icc-manual-val')?.value);
+  const date = document.getElementById('icc-manual-date')?.value;
+  if (!val || val <= 0) { alert('Ingresá un valor de ICC válido (ej: 285340.71)'); return; }
+
+  const body   = document.getElementById('icc-body');
+  const footer = document.getElementById('icc-footer');
+  body.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Calculando con valor manual…</div>';
+
+  try {
+    const r = await fetch('api/indec_icc.php', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ preview: true, manual_current: val, manual_date: date })
+    });
+    const j = await r.json();
+    if (!j.success) {
+      body.innerHTML = iccManualForm(j.error || 'Error al procesar.');
+      return;
+    }
+    if (j.action === 'baseline_set') {
+      body.innerHTML = `
+        <div style="color:var(--green);font-weight:600;margin-bottom:10px">✓ ICC base registrado (${val})</div>
+        <div style="font-size:12px;color:var(--muted)">Los precios actuales quedan como referencia para futuros ajustes.</div>`;
+      return;
+    }
+    _iccData = { preview: false, manual_current: val, manual_date: date };
+    body.innerHTML = iccPreviewHtml(j);
+    footer.style.display = 'flex';
+  } catch(e) {
+    body.innerHTML = iccManualForm('Error: ' + e.message);
   }
 }
 
 function closeIccModal() {
   document.getElementById('icc-modal').style.display = 'none';
+  _iccData = null;
 }
 
 async function applyIcc() {
@@ -1227,7 +1299,7 @@ async function applyIcc() {
   try {
     const r = await fetch('api/indec_icc.php', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({preview: false})
+      body: JSON.stringify(_iccData || { preview: false })
     });
     const j = await r.json();
     if (j.success) {

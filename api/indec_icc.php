@@ -23,125 +23,124 @@ if (!isset($_SESSION['ta_admin']) && !isset($_SESSION['bim_ok'])) {
 
 $cfg     = is_file(__DIR__.'/../config/settings.php') ? require __DIR__.'/../config/settings.php' : [];
 $input   = json_decode(file_get_contents('php://input'), true) ?? [];
-$preview = ($_SERVER['REQUEST_METHOD'] === 'GET') || !empty($input['preview']);
+
+// GET o POST con preview:true → modo vista previa (no escribe en BD)
+$preview = ($_SERVER['REQUEST_METHOD'] === 'GET') || ($input['preview'] ?? false) === true;
+
+// Modo manual: el usuario ingresa los valores ICC directamente
+$manualCurrent = isset($input['manual_current']) ? floatval($input['manual_current']) : null;
+$manualDate    = $input['manual_date'] ?? null;
 
 // ── 1. Obtener ICC materiales desde datos.gob.ar ──────────────
+function curlGet(string $url, bool $sslVerify = true): array {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 3,
+        CURLOPT_SSL_VERIFYPEER => $sslVerify,
+        CURLOPT_SSL_VERIFYHOST => $sslVerify ? 2 : 0,
+        CURLOPT_HTTPHEADER     => ['Accept: application/json', 'User-Agent: Mozilla/5.0 TasadorIA/5.0'],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+    return [$code, $body ?: '', $err];
+}
+
 function fetchICC(): array {
-    // IDs de series del ICC en datos.gob.ar (orden de probabilidad)
+    // IDs de series del ICC en datos.gob.ar
     $candidates = [
         'icc_1.1_materiales_total',
         'icc_2.1_materiales_total',
         'icc_1_materiales_total',
         'icc_materiales',
         'ICC_MATERIALES',
+        'icc_1.1_total_total',    // total ICC (fallback)
     ];
 
     // Intentar descubrir el ID correcto buscando en el catálogo
     $searchUrl = 'https://apis.datos.gob.ar/series/api/search/?q=costo+construccion+materiales&limit=10';
-    $ch = curl_init($searchUrl);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
-        CURLOPT_HTTPHEADER     => ['Accept: application/json', 'User-Agent: TasadorIA/5.0'],
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($code === 200 && $body) {
-        $d = json_decode($body, true);
-        foreach ($d['data'] ?? [] as $series) {
-            $title = strtolower($series['title'] ?? '');
-            $id    = $series['id'] ?? '';
-            if ($id && (strpos($title,'material') !== false || strpos($title,'materiales') !== false)
-                    && strpos($title,'construc') !== false) {
-                array_unshift($candidates, $id); // ponerlo primero
-                break;
+    foreach ([true, false] as $ssl) {
+        [$code, $body] = curlGet($searchUrl, $ssl);
+        if ($code === 200 && $body) {
+            $d = json_decode($body, true);
+            foreach ($d['data'] ?? [] as $series) {
+                $title = strtolower($series['title'] ?? '');
+                $id    = $series['id'] ?? '';
+                if ($id && (strpos($title,'material') !== false)
+                        && strpos($title,'construc') !== false) {
+                    array_unshift($candidates, $id);
+                    break;
+                }
             }
+            break;
         }
     }
 
-    // Probar cada candidato
+    // Probar cada candidato (con y sin SSL verification)
     foreach (array_unique($candidates) as $seriesId) {
         $url = "https://apis.datos.gob.ar/series/api/series/?ids={$seriesId}&limit=3&sort=desc&format=json";
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
-            CURLOPT_HTTPHEADER     => ['Accept: application/json', 'User-Agent: TasadorIA/5.0'],
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-        $body = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err  = curl_error($ch);
-        curl_close($ch);
+        foreach ([true, false] as $ssl) {
+            [$code, $body, $err] = curlGet($url, $ssl);
+            if ($err || $code !== 200 || !$body) continue;
 
-        if ($err || $code !== 200 || !$body) continue;
+            $d = json_decode($body, true);
+            if (empty($d['data'])) continue;
 
-        $d = json_decode($body, true);
-        if (empty($d['data'])) continue;
+            $latest = $d['data'][0] ?? [];
+            $prev   = $d['data'][1] ?? [];
+            $value  = null;
+            $prevV  = null;
 
-        // Fila más reciente: [ "2024-11", valor_col1, valor_col2, ... ]
-        // Buscar la primera columna numérica > 0
-        $latest = $d['data'][0] ?? [];
-        $prev   = $d['data'][1] ?? [];
-        $value  = null;
-        $prevV  = null;
-
-        for ($col = 1; $col < count($latest); $col++) {
-            if (isset($latest[$col]) && is_numeric($latest[$col]) && $latest[$col] > 0) {
-                $value = floatval($latest[$col]);
-                $prevV = isset($prev[$col]) ? floatval($prev[$col]) : null;
-                break;
+            for ($col = 1; $col < count($latest); $col++) {
+                if (isset($latest[$col]) && is_numeric($latest[$col]) && $latest[$col] > 0) {
+                    $value = floatval($latest[$col]);
+                    $prevV = isset($prev[$col]) ? floatval($prev[$col]) : null;
+                    break;
+                }
             }
-        }
+            if (!$value) continue;
 
-        if (!$value) continue;
-
-        return [
-            'series_id'     => $seriesId,
-            'date'          => $latest[0] ?? '',
-            'value'         => $value,
-            'prev_value'    => $prevV,
-            'variation_pct' => ($prevV && $prevV > 0) ? round(($value - $prevV) / $prevV * 100, 2) : null,
-        ];
-    }
-
-    // Último recurso: intentar endpoint alternativo con múltiples series a la vez
-    $multiUrl = 'https://apis.datos.gob.ar/series/api/series/?ids=icc_1.1_total_total,icc_1.1_materiales_total,icc_1.1_manodeobra_total&limit=3&sort=desc';
-    $ch = curl_init($multiUrl);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>10,
-        CURLOPT_HTTPHEADER=>['Accept: application/json'],CURLOPT_SSL_VERIFYPEER=>true]);
-    $body = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($code === 200 && $body) {
-        $d = json_decode($body, true);
-        $row = $d['data'][0] ?? [];
-        // Columna 2 = materiales (si está)
-        for ($col = 1; $col < count($row); $col++) {
-            if (isset($row[$col]) && $row[$col] > 0) {
-                return [
-                    'series_id'     => 'icc_1.1_materiales_total',
-                    'date'          => $row[0] ?? '',
-                    'value'         => floatval($row[$col]),
-                    'prev_value'    => null,
-                    'variation_pct' => null,
-                    'note'          => 'columna '.$col,
-                ];
-            }
+            return [
+                'series_id'     => $seriesId,
+                'date'          => $latest[0] ?? '',
+                'value'         => $value,
+                'prev_value'    => $prevV,
+                'variation_pct' => ($prevV && $prevV > 0) ? round(($value - $prevV) / $prevV * 100, 2) : null,
+            ];
         }
     }
 
-    return ['error' => 'No se pudo obtener el ICC de datos.gob.ar. Verificá conectividad al servidor.'];
+    return ['error' => 'No se pudo conectar con datos.gob.ar. Usá la entrada manual.'];
 }
 
-// ── Ejecutar fetch ICC primero (antes de tocar la BD) ────────
-$icc = fetchICC();
+// ── Ejecutar fetch ICC ────────────────────────────────────────
+if ($manualCurrent && $manualCurrent > 0) {
+    // Modo manual: el usuario ingresó el valor desde el reporte INDEC
+    $icc = [
+        'series_id'     => 'manual',
+        'date'          => $manualDate ?: date('Y-m'),
+        'value'         => $manualCurrent,
+        'prev_value'    => null,
+        'variation_pct' => null,
+        'source'        => 'manual',
+    ];
+} else {
+    $icc = fetchICC();
+}
 
 if (!empty($icc['error'])) {
-    out(['success'=>false, 'error'=>$icc['error'],
-         'tip'   =>'Probá abrir: https://apis.datos.gob.ar/series/api/series/?ids=icc_1.1_materiales_total&limit=2']);
+    out([
+        'success'     => false,
+        'error'       => $icc['error'],
+        'manual_mode' => true,
+        'tip'         => 'El servidor no pudo conectarse a datos.gob.ar. Ingresá el ICC manualmente desde el reporte PDF de INDEC.',
+        'indec_url'   => 'https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-5-33',
+    ]);
 }
 
 // ── 2. Conexión BD ────────────────────────────────────────────
