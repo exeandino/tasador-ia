@@ -1191,16 +1191,31 @@ function iccManualForm(errorMsg) {
   const now = new Date();
   const defDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   return `
-    <div style="background:rgba(244,67,54,.08);border:1px solid rgba(244,67,54,.3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#f44336">
+    <div style="background:rgba(244,67,54,.08);border:1px solid rgba(244,67,54,.3);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:#f44336">
       ⚠ ${errorMsg}
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
-      Ingresá los valores del <strong style="color:var(--text)">Cuadro 1 — Materiales</strong> del
-      <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-5-33" target="_blank"
-         style="color:var(--gold)">reporte ICC del INDEC ↗</a>.<br>
-      El índice base es 1993=100.
+
+    <!-- Opción A: subir CSV -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">📎 Opción A — Subir CSV del INDEC (recomendado)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        Descargá el CSV desde el
+        <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-5-33" target="_blank"
+           style="color:var(--gold)">sitio del INDEC ↗</a>
+        → <em>"Serie del Índice del ICC, nivel general y capítulos"</em> → subilo acá.
+      </div>
+      <label style="display:block;width:100%;padding:9px;background:var(--gold);color:#000;font-weight:700;border-radius:7px;cursor:pointer;font-size:12px;text-align:center;box-sizing:border-box">
+        📂 Seleccionar archivo CSV
+        <input id="icc-csv-input" type="file" accept=".csv,.CSV" style="display:none" onchange="uploadIccCsv(this)">
+      </label>
+      <div id="icc-csv-status" style="font-size:11px;color:var(--muted);margin-top:6px;min-height:16px"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+    <!-- Separador -->
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px">— o bien ingresá el valor a mano —</div>
+
+    <!-- Opción B: manual -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div>
         <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase">ICC Materiales actual</label>
         <input id="icc-manual-val" type="number" step="0.01" placeholder="ej: 285340.71"
@@ -1213,7 +1228,7 @@ function iccManualForm(errorMsg) {
       </div>
     </div>
     <button onclick="submitManualIcc()"
-      style="width:100%;padding:9px;background:var(--gold);border:none;color:#000;font-weight:700;border-radius:7px;cursor:pointer;font-size:13px">
+      style="width:100%;padding:9px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;cursor:pointer;font-size:12px">
       📊 Calcular ajuste con estos valores
     </button>`;
 }
@@ -1250,6 +1265,45 @@ async function openIccModal() {
 
   } catch(e) {
     body.innerHTML = iccManualForm('Error de red: ' + e.message);
+  }
+}
+
+async function uploadIccCsv(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const status = document.getElementById('icc-csv-status');
+  status.textContent = '⏳ Leyendo CSV…';
+  status.style.color = 'var(--muted)';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const r = await fetch('api/indec_icc_csv.php', { method:'POST', body: fd });
+    const j = await r.json();
+
+    if (!j.success) {
+      status.innerHTML = `<span style="color:#f44336">⚠ ${j.error}</span>`;
+      return;
+    }
+
+    // Llenar los campos del formulario manual con los datos del CSV
+    const valInput  = document.getElementById('icc-manual-val');
+    const dateInput = document.getElementById('icc-manual-date');
+    if (valInput)  valInput.value  = j.value;
+    if (dateInput) dateInput.value = j.date;
+
+    status.innerHTML = `<span style="color:var(--green)">
+      ✓ ${j.column_name} · Período: ${j.date} · Valor: <strong>${j.value.toLocaleString('es-AR')}</strong>
+      ${j.variation_pct != null ? ` · Var. mensual: ${j.variation_pct > 0 ? '+' : ''}${j.variation_pct}%` : ''}
+      · ${j.total_rows} períodos leídos
+    </span>`;
+
+    // Auto-calcular ajuste con los valores del CSV
+    setTimeout(() => submitManualIcc(), 400);
+
+  } catch(e) {
+    status.innerHTML = `<span style="color:#f44336">⚠ Error: ${e.message}</span>`;
   }
 }
 
