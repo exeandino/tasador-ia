@@ -159,7 +159,8 @@ $materialsJson = json_encode($materialsForScraping, JSON_UNESCAPED_UNICODE);
   --font:system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100%;display:flex;flex-direction:column;overflow:hidden}
 
 /* TOP BAR */
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -176,8 +177,8 @@ button.btn-primary:hover{opacity:.85}
 .badge-db.nobd{background:rgba(244,67,54,.1);color:#f44336;border-color:rgba(244,67,54,.3)}
 
 /* MAIN LAYOUT */
-.main{display:grid;grid-template-columns:1fr 360px;flex:1;min-height:0;height:calc(100vh - 54px)}
-#map{width:100%;height:100%;z-index:0}
+.main{display:grid;grid-template-columns:1fr 360px;grid-template-rows:1fr;flex:1;min-height:0;overflow:hidden}
+#map{width:100%;height:100%;min-height:0;z-index:0}
 
 /* SIDEBAR */
 .sidebar{display:flex;flex-direction:column;border-left:1px solid var(--border);overflow:hidden;background:var(--bg2)}
@@ -276,6 +277,7 @@ table.summary tr:hover td{background:rgba(255,255,255,.03)}
       </button>
     </a>
     <button class="btn" onclick="openMlModal()" title="Actualizar precios por búsqueda de productos (servidor — experimental)">🔍 Precios srv</button>
+    <button class="btn" onclick="openPriceListModal()" title="Ver lista completa de precios de materiales con comparación y links a ML">📋 Lista de precios</button>
     <button class="btn btn-primary" onclick="exportCSV()">⬇ CSV</button>
   </div>
 </div>
@@ -456,6 +458,66 @@ table.summary tr:hover td{background:rgba(255,255,255,.03)}
     <div id="icc-footer" style="display:none;padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
       <button onclick="closeIccModal()" style="padding:7px 18px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:7px;cursor:pointer;font-size:12px">Cancelar</button>
       <button id="icc-apply-btn" onclick="applyIcc()" style="padding:7px 22px;background:var(--gold);border:none;color:#000;font-weight:700;border-radius:7px;cursor:pointer;font-size:13px">✓ Aplicar ajuste</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Lista de precios de materiales -->
+<div id="price-list-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9000;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:900px;max-width:100%;margin:auto">
+
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--gold)">📋 Lista de precios de materiales</div>
+        <div id="pl-meta" style="font-size:11px;color:var(--muted);margin-top:2px">Cargando…</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="pl-search" type="search" placeholder="Buscar material…"
+          oninput="plFilter()"
+          style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;width:180px">
+        <select id="pl-cat" onchange="plFilter()"
+          style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="pl-sort" onchange="plFilter()"
+          style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px">
+          <option value="category">Ordenar: Categoría</option>
+          <option value="name">Ordenar: Nombre</option>
+          <option value="ars_desc">Ordenar: Mayor precio</option>
+          <option value="ars_asc">Ordenar: Menor precio</option>
+          <option value="delta_desc">Ordenar: Mayor variación</option>
+          <option value="updated">Ordenar: Más reciente</option>
+        </select>
+        <button onclick="closePriceListModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1">✕</button>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="pl-stats" style="display:flex;gap:0;border-bottom:1px solid var(--border);font-size:11px"></div>
+
+    <!-- Table -->
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg);border-bottom:1px solid var(--border)">
+            <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Categoría / Material</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Unidad</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Precio ARS</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Precio USD</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Ant. USD</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Δ%</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Fuente</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">Actualiz.</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;white-space:nowrap">ML</th>
+          </tr>
+        </thead>
+        <tbody id="pl-tbody"></tbody>
+      </table>
+    </div>
+
+    <div style="padding:10px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:right">
+      <span id="pl-count"></span>
     </div>
   </div>
 </div>
@@ -1373,6 +1435,140 @@ async function applyIcc() {
   }
 }
 
+// ── LISTA DE PRECIOS ──────────────────────────────────────────
+let _plData = [];
+
+const CAT_LABELS = {
+  estructura:'Estructura', mamposteria:'Mampostería', morteros:'Morteros',
+  impermeabilizacion:'Impermeab.', aislacion:'Aislación', cubiertas:'Cubiertas',
+  metalica:'Metalica', electrica:'Eléctrica', electromecanica:'Electromec.',
+  sanitaria:'Sanitaria', revestimientos:'Revestim.', pintura:'Pintura',
+  carpinteria:'Carpintería', climatizacion:'Climatiz.', varios:'Varios',
+};
+
+async function openPriceListModal() {
+  const modal = document.getElementById('price-list-modal');
+  modal.style.display = 'flex';
+  document.getElementById('pl-meta').textContent = 'Cargando precios…';
+  document.getElementById('pl-tbody').innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted)">⏳ Consultando base de datos…</td></tr>';
+  document.getElementById('pl-stats').innerHTML = '';
+
+  try {
+    const r = await fetch('api/get_materials.php');
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+
+    _plData = j.materials;
+    document.getElementById('pl-meta').innerHTML =
+      `${j.total} materiales · USD/ARS: $${j.usd_rate.toLocaleString('es-AR')} · Actualizado: ${j.updated_at || '—'}`;
+
+    // Llenar selector de categorías
+    const cats = [...new Set(_plData.map(m => m.category))].sort();
+    const catSel = document.getElementById('pl-cat');
+    catSel.innerHTML = '<option value="">Todas las categorías</option>';
+    cats.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = CAT_LABELS[c] || c;
+      catSel.appendChild(o);
+    });
+
+    // Calcular stats
+    const withDelta = _plData.filter(m => m.delta_pct !== null);
+    const avgDelta  = withDelta.length ? (withDelta.reduce((a,m)=>a+m.delta_pct,0)/withDelta.length).toFixed(1) : null;
+    const fromML    = _plData.filter(m => m.source === 'mercadolibre').length;
+    const withLink  = _plData.filter(m => m.ml_url).length;
+
+    document.getElementById('pl-stats').innerHTML = [
+      ['📦 Materiales', j.total],
+      ['🏗 Desde ML', fromML],
+      ['🔗 Con link ML', withLink],
+      avgDelta !== null ? [`📈 Δ promedio`, `${avgDelta>0?'+':''}${avgDelta}%`] : null,
+    ].filter(Boolean).map(([l,v]) => `
+      <div style="flex:1;padding:10px 14px;border-right:1px solid var(--border);text-align:center">
+        <div style="font-size:10px;color:var(--muted)">${l}</div>
+        <div style="font-size:16px;font-weight:700;margin-top:2px">${v}</div>
+      </div>`).join('');
+
+    plFilter();
+
+  } catch(e) {
+    document.getElementById('pl-tbody').innerHTML =
+      `<tr><td colspan="9" style="padding:20px;text-align:center;color:#f44336">⚠ ${e.message}</td></tr>`;
+  }
+}
+
+function plFilter() {
+  const q    = (document.getElementById('pl-search').value || '').toLowerCase();
+  const cat  = document.getElementById('pl-cat').value;
+  const sort = document.getElementById('pl-sort').value;
+
+  let rows = _plData.filter(m =>
+    (!q || m.material.toLowerCase().includes(q) || (m.ml_query||'').toLowerCase().includes(q)) &&
+    (!cat || m.category === cat)
+  );
+
+  rows = rows.sort((a,b) => {
+    if (sort === 'name')       return a.material.localeCompare(b.material);
+    if (sort === 'ars_desc')   return b.price_ars - a.price_ars;
+    if (sort === 'ars_asc')    return a.price_ars - b.price_ars;
+    if (sort === 'delta_desc') return (b.delta_pct??-999) - (a.delta_pct??-999);
+    if (sort === 'updated')    return (b.updated_at||'').localeCompare(a.updated_at||'');
+    // default: category + material
+    return (a.category+a.material).localeCompare(b.category+b.material);
+  });
+
+  const fmt   = n => Math.round(n).toLocaleString('es-AR');
+  const fmtU  = n => n ? '$'+n.toFixed(2) : '—';
+  const tbody = document.getElementById('pl-tbody');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--muted)">Sin resultados</td></tr>';
+    document.getElementById('pl-count').textContent = '0 materiales';
+    return;
+  }
+
+  let lastCat = null;
+  tbody.innerHTML = rows.map(m => {
+    const catHeader = (sort === 'category' && m.category !== lastCat)
+      ? (() => { lastCat = m.category; return `<tr style="background:var(--bg)"><td colspan="9" style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px">${CAT_LABELS[m.category]||m.category}</td></tr>`; })()
+      : '';
+
+    const delta = m.delta_pct !== null
+      ? `<span style="color:${m.delta_pct>0?'#f44336':m.delta_pct<0?'var(--green)':'var(--muted)';font-weight:600}">${m.delta_pct>0?'+':''}${m.delta_pct}%</span>`
+      : '<span style="color:var(--muted)">—</span>';
+
+    const srcBadge = m.source === 'mercadolibre'
+      ? '<span style="background:rgba(201,168,76,.15);color:#c9a84c;padding:2px 6px;border-radius:4px;font-size:9px">ML</span>'
+      : '<span style="color:var(--muted);font-size:10px">manual</span>';
+
+    const mlBtn = m.ml_url
+      ? `<a href="${m.ml_url}" target="_blank" rel="noopener"
+           style="display:inline-block;background:var(--bg);border:1px solid var(--border);color:var(--gold);padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap"
+           title="${m.ml_query||''}">🔍 Ver</a>`
+      : `<a href="https://listado.mercadolibre.com.ar/${encodeURIComponent((m.material||'').replace(/ /g,'-'))}_NoIndex_True" target="_blank" rel="noopener"
+           style="display:inline-block;background:var(--bg);border:1px solid #444;color:#666;padding:2px 8px;border-radius:4px;font-size:10px;text-decoration:none;white-space:nowrap"
+           title="Buscar por nombre">🔍 ML</a>`;
+
+    return catHeader + `<tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+      <td style="padding:7px 12px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.material}">${m.material}</td>
+      <td style="padding:7px 10px;text-align:right;color:var(--muted);font-size:11px">${m.unit}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600">$${fmt(m.price_ars)}</td>
+      <td style="padding:7px 10px;text-align:right;color:var(--gold)">${fmtU(m.price_usd)}</td>
+      <td style="padding:7px 10px;text-align:right;color:var(--muted)">${m.price_usd_prev ? fmtU(m.price_usd_prev) : '—'}</td>
+      <td style="padding:7px 10px;text-align:right">${delta}</td>
+      <td style="padding:7px 10px;text-align:center">${srcBadge}</td>
+      <td style="padding:7px 10px;text-align:center;color:var(--muted);font-size:10px">${m.updated_at||'—'}</td>
+      <td style="padding:7px 10px;text-align:center">${mlBtn}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pl-count').textContent = `${rows.length} de ${_plData.length} materiales`;
+}
+
+function closePriceListModal() {
+  document.getElementById('price-list-modal').style.display = 'none';
+}
+
 // ── ACTUALIZACIÓN ML ──────────────────────────────────────────
 function openMlModal() {
   document.getElementById('ml-modal').style.display='flex';
@@ -1506,16 +1702,32 @@ async function runMlUpdate() {
 
 // ── INIT MAP ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Asegurarse que el contenedor tenga tamaño antes de inicializar Leaflet
+  const mapEl = document.getElementById('map');
+  if (!mapEl.offsetHeight) {
+    mapEl.style.height = (window.innerHeight - document.querySelector('.topbar').offsetHeight) + 'px';
+  }
+
   map = L.map('map', {zoomControl:true, attributionControl:false}).setView([-32, -63], 5);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, opacity: 1,
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, opacity: 0.7,
   }).addTo(map);
+  // Capa oscura CARTO (más prolija) — se activa si los tiles cargan OK
+  const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, opacity: 1,
+  });
+  cartoLayer.addTo(map);
+  cartoLayer.on('tileerror', function() {
+    // Si CARTO falla, la capa OSM de fallback ya está debajo
+    this.remove();
+  });
 
   L.control.attribution({position:'bottomleft'}).addTo(map);
   map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" style="color:#666">OSM</a> · <a href="https://carto.com" style="color:#666">CARTO</a>');
 
-  refreshMap();
+  // Forzar recalculo de tamaño por si el layout tardó en renderizar
+  setTimeout(() => { map.invalidateSize(); refreshMap(); }, 150);
 });
 </script>
 </body>
