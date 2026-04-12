@@ -1,0 +1,27 @@
+{
+  "slug":        "bim-materiales",
+  "name":        "BIM Materiales ML",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Mapa de calor de costos de construcción. Bookmarklet para extraer precios de materiales desde MercadoLibre. Actualización por ICC INDEC.",
+  "requires":    "5.0",
+  "hooks": [
+    "admin_toolbar_buttons",
+    "admin_modals",
+    "admin_scripts"
+  ],
+  "pages": [
+    { "file": "admin_bim.php", "menu_label": "BIM", "menu_icon": "🏗", "menu_position": 3 }
+  ],
+  "api_endpoints": [
+    "api/construction.php",
+    "api/indec_icc.php",
+    "api/indec_icc_csv.php",
+    "api/get_materials.php",
+    "api/save_material_prices.php",
+    "api/ml_token.php",
+    "api/price_proxy.php"
+  ],
+  "sql_install":   "install.sql",
+  "sql_uninstall": "uninstall.sql"
+}

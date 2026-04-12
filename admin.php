@@ -374,6 +374,7 @@ input,select,button,textarea{font-family:inherit}
   <button class="nav-item" onclick="showTab('buscador',this)"><span class="icon">🔍</span>Buscador</button>
   <button class="nav-item" onclick="showTab('config',this)"><span class="icon">⚙️</span>Configuración</button>
   <a class="nav-item" href="admin_bim.php" target="_blank" style="text-decoration:none"><span class="icon">🏗</span>Mapa BIM <span style="font-size:9px;color:var(--muted);margin-left:auto">↗</span></a>
+  <a class="nav-item" href="admin_plugins.php" style="text-decoration:none"><span class="icon">🔌</span>Plugins</a>
   <div style="margin-top:auto;padding:14px 20px;border-top:1px solid var(--border)">
     <a href="../" style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px">← Ver tasador</a>
     <a href="?logout=1" style="font-size:12px;color:var(--muted)">Cerrar sesión</a>
