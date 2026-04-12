@@ -2,7 +2,7 @@
 
 **Tasador online de propiedades con IA** · Open Source · MIT License · Argentina & LATAM
 
-Sistema completo de valuación inmobiliaria inteligente. Wizard paso a paso, análisis de fotos con IA, buscador de propiedades, extractores multi-portal (Zonaprop, Argenprop, Ventafe, Mercado Único), panel admin unificado y widget embebible.
+Sistema completo de valuación inmobiliaria inteligente con arquitectura basada en plugins. Core MIT open source + marketplace de módulos pagos. Wizard paso a paso, análisis de fotos con IA, buscador de propiedades, extractores multi-portal (Zonaprop, Argenprop, Ventafe, Mercado Único), panel admin unificado y widget embebible.
 
 **Demo:** [anperprimo.com/tasador](https://anperprimo.com/tasador) · **Hecho en Santa Fe, Argentina 🇦🇷**
 
@@ -27,6 +27,7 @@ Sistema completo de valuación inmobiliaria inteligente. Wizard paso a paso, an�
 - 👥 **Leads** — registro de contactos con datos de la propiedad + exportar CSV
 - 📋 **Tasaciones** — historial completo
 - ⚙️ **Configuración** — tipo de cambio, SMTP, IA, URLs
+- 🔌 **Gestor de plugins** — instalar, actualizar y activar módulos de mercado
 
 ### Datos de mercado reales
 - 🔖 **Bookmarklet multi-portal** — extrae propiedades de cualquier portal en un clic
@@ -53,6 +54,109 @@ Sistema completo de valuación inmobiliaria inteligente. Wizard paso a paso, an�
 | Escritura | Boleto -6% · Posesión -12% · Sucesión -15% |
 | Deuda hipotecaria | Se descuenta del precio final |
 | IA fotos | -15% a +15% según estado real |
+
+---
+
+## 🔌 Sistema de Plugins
+
+TasadorIA incluye un **sistema de plugins extensible** que permite agregar funcionalidad adicional sin modificar el core. El core es MIT open source y completamente gratuito. Los módulos de mercado son **pagos** ($19-$29) y se instalan como plugins.
+
+### Arquitectura de plugins
+
+Cada plugin es una carpeta con la siguiente estructura:
+
+```
+plugins/
+├── bim-materiales-ml/
+│   ├── plugin.json          ← Metadatos del plugin
+│   ├── index.php            ← Lógica principal
+│   └── assets/              ← Estilos, scripts, imágenes
+├── icc-indec/
+│   ├── plugin.json
+│   ├── index.php
+│   └── assets/
+└── ...
+```
+
+### Instalación de plugins
+
+1. **Acceder al panel admin:**
+   ```
+   https://tudominio.com/tasador/admin_plugins.php
+   ```
+
+2. **Descargar el plugin** desde el marketplace de TasadorIA
+
+3. **Arrastrar el ZIP** a la zona de drop en `admin_plugins.php`
+
+4. **Activar el plugin** — se ejecuta automáticamente después de la instalación
+
+```
+📦 plugin-name.zip
+   ↓
+   [Drag & drop] → admin_plugins.php
+   ↓
+   ✅ Activado y listo
+```
+
+### Módulos disponibles en marketplace
+
+| Plugin | Precio | Descripción |
+|--------|--------|-------------|
+| **BIM Materiales ML** | $29 | Clasificación automática de materiales en fotos con ML. Detecta hormigón, ladrillo, cerámica, madera, etc. |
+| **ICC INDEC** | $19 | Datos del Índice de Costo de la Construcción INDEC. Ajusta valores según inflación real. |
+| **IA Fotos avanzada** | $29 | Análisis profundo de fotos: estructura, acabados, daños. Ajuste ±25% vs ±15% del core. |
+| **Apify Sync** | $29 | Scraping automático mensual de portales. Actualiza BD sin intervención. |
+| **Escrituras** | $19 | Integración con registros públicos. Verifica estado de escrituras e hipotecas. |
+| **WP Publisher** | $19 | Plugin WordPress oficial. Shortcode `[tasador]` + customización de temas. |
+| **Ciudades Extra** | $19 | Pack de ciudades: Mendoza, Córdoba, La Plata, Mar del Plata, Tucumán. |
+| **CRM Export** | $29 | Exporta leads y tasaciones a CRM: Pipedrive, HubSpot, Salesforce, Zoho. |
+
+### Desarrollo de plugins propios
+
+Un plugin simple:
+
+```php
+// plugins/mi-plugin/plugin.json
+{
+  "name": "Mi Plugin",
+  "version": "1.0.0",
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "description": "Mi extensión personalizada",
+  "hooks": {
+    "valuation_complete": "function_on_valuation_done",
+    "admin_panel": "add_custom_admin_section"
+  }
+}
+
+// plugins/mi-plugin/index.php
+<?php
+function function_on_valuation_done($valuation_data) {
+    // Hacer algo con los datos de valuación
+    error_log('Valuación completada: ' . $valuation_data['code']);
+}
+
+function add_custom_admin_section() {
+    echo '<div class="admin-section">
+            <h3>Mi Plugin</h3>
+            <p>Bienvenido a mi extensión personalizada</p>
+          </div>';
+}
+```
+
+### Sistema de hooks
+
+Los plugins pueden registrarse en diferentes puntos del flujo:
+
+| Hook | Parámetros | Descripción |
+|------|-----------|-------------|
+| `valuation_complete` | `$valuation_data` | Se ejecuta después de completar una tasación |
+| `admin_panel` | ninguno | Para agregar secciones al panel admin |
+| `before_price_calculate` | `$property_data` | Antes de calcular precio |
+| `after_price_calculate` | `$price, $property_data` | Después del cálculo |
+| `lead_submitted` | `$lead_data` | Cuando se envía un lead |
+| `wizard_step` | `$step, $data` | En cada paso del wizard |
 
 ---
 
@@ -102,11 +206,16 @@ tasador-ia/
 ├── index.php              ← Wizard de tasación (público)
 ├── admin.php              ← Panel admin unificado (protegido)
 ├── admin_market.php       ← Panel datos de mercado + extractores
+├── admin_plugins.php      ← Gestor de plugins (protegido)
 ├── wp_import.php          ← Importador WordPress XML (usar y borrar)
 ├── embed.js               ← Widget embebible
 ├── multi_extractor.js     ← Bookmarklet universal para portales
 ├── install.sql            ← Esquema principal de BD
 ├── market_data.sql        ← Tablas para datos de mercado
+│
+├── plugins/               ← Directorio de plugins
+│   ├── plugin-loader.php  ← Sistema de carga de plugins
+│   └── [plugins instalados]
 │
 ├── api/
 │   ├── valuar.php         ← Motor de tasación (algoritmo + mercado)
@@ -271,7 +380,7 @@ Ver [docs/API.md](docs/API.md) para documentación completa.
 - 🗺 **Nuevas ciudades** — Argentina, Uruguay, Chile, Colombia, México, Miami
 - 📊 **Más portales** — Properati, MercadoLibre Inmuebles, Inmuebles24
 - 🎨 **Temas visuales** — modo claro, branding personalizable
-- 🔌 **Plugin WordPress** — shortcode `[tasador_ia]`
+- 🔌 **Plugins comunitarios** — desarrolla tu propio módulo con el sistema de hooks
 - 📱 **PWA** — app móvil instalable
 - 📈 **APIs de tipo de cambio** — actualización automática BCRA/bluelytics
 - 🌐 **i18n** — inglés, portugués
@@ -290,6 +399,8 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles.
 ## 📜 Licencia
 
 MIT — libre para uso comercial, modificación y distribución. Ver [LICENSE](LICENSE).
+
+Los módulos de marketplace están sujetos a sus propios términos de licencia (ver `plugin.json` en cada plugin).
 
 ---
 
