@@ -159,8 +159,7 @@ $materialsJson = json_encode($materialsForScraping, JSON_UNESCAPED_UNICODE);
   --font:system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font-family:var(--font);background:var(--bg);color:var(--text);height:100%;display:flex;flex-direction:column;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
 
 /* TOP BAR */
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -177,8 +176,9 @@ button.btn-primary:hover{opacity:.85}
 .badge-db.nobd{background:rgba(244,67,54,.1);color:#f44336;border-color:rgba(244,67,54,.3)}
 
 /* MAIN LAYOUT */
-.main{display:grid;grid-template-columns:1fr 360px;grid-template-rows:1fr;flex:1;min-height:0;overflow:hidden}
-#map{width:100%;height:100%;min-height:0;z-index:0}
+.main{display:grid;grid-template-columns:1fr 360px}
+#map{width:100%;background:#111;z-index:0}
+/* altura se setea por JS para garantizar que Leaflet lo reciba correctamente */
 
 /* SIDEBAR */
 .sidebar{display:flex;flex-direction:column;border-left:1px solid var(--border);overflow:hidden;background:var(--bg2)}
@@ -1701,33 +1701,40 @@ async function runMlUpdate() {
 // El POST action=save_costs lo maneja el mismo admin_bim.php arriba
 
 // ── INIT MAP ─────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Asegurarse que el contenedor tenga tamaño antes de inicializar Leaflet
-  const mapEl = document.getElementById('map');
-  if (!mapEl.offsetHeight) {
-    mapEl.style.height = (window.innerHeight - document.querySelector('.topbar').offsetHeight) + 'px';
-  }
+function setMapHeight() {
+  const topbar = document.querySelector('.topbar');
+  const h = window.innerHeight - (topbar ? topbar.offsetHeight : 60);
+  document.getElementById('map').style.height = Math.max(h, 300) + 'px';
+}
 
+document.addEventListener('DOMContentLoaded', ()=>{
+  // 1. Fijar altura ANTES de crear el mapa — requisito de Leaflet
+  setMapHeight();
+  window.addEventListener('resize', () => { setMapHeight(); if (map) map.invalidateSize(); });
+
+  // 2. Crear mapa
   map = L.map('map', {zoomControl:true, attributionControl:false}).setView([-32, -63], 5);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, opacity: 0.7,
-  }).addTo(map);
-  // Capa oscura CARTO (más prolija) — se activa si los tiles cargan OK
+  // 3. Capa de tiles — CARTO oscuro, fallback a OSM si falla
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  });
   const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, opacity: 1,
+    maxZoom: 19, attribution: '© CARTO'
   });
   cartoLayer.addTo(map);
-  cartoLayer.on('tileerror', function() {
-    // Si CARTO falla, la capa OSM de fallback ya está debajo
-    this.remove();
+  let cartoFailed = false;
+  cartoLayer.on('tileerror', () => {
+    if (!cartoFailed) { cartoFailed = true; osmLayer.addTo(map); map.removeLayer(cartoLayer); }
   });
 
   L.control.attribution({position:'bottomleft'}).addTo(map);
-  map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" style="color:#666">OSM</a> · <a href="https://carto.com" style="color:#666">CARTO</a>');
 
-  // Forzar recalculo de tamaño por si el layout tardó en renderizar
-  setTimeout(() => { map.invalidateSize(); refreshMap(); }, 150);
+  // 4. Renderizar marcadores
+  refreshMap();
+
+  // 5. Segundo invalidateSize por si el layout tardó (flex/reflow)
+  setTimeout(() => map.invalidateSize(), 250);
 });
 </script>
 </body>
