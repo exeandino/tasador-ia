@@ -139,6 +139,50 @@ h2{font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px}
 
 </div>
 
+<!-- ── Buy Modal ─────────────────────────────────────────── -->
+<div id="buy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:16px;max-width:420px;width:100%;padding:28px;position:relative">
+    <button onclick="closeBuyModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1">×</button>
+
+    <h3 style="font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:4px" id="bm-title">Plugin</h3>
+    <div style="font-size:22px;font-weight:800;color:#e0e0e0;margin-bottom:2px" id="bm-price-usd"></div>
+    <div style="font-size:12px;color:#888;margin-bottom:20px" id="bm-price-ars"></div>
+
+    <input type="hidden" id="bm-slug">
+
+    <label style="display:block;font-size:12px;color:#888;margin-bottom:6px">Email <span style="color:#c9a84c">*</span></label>
+    <input id="bm-email" type="email" placeholder="tu@email.com"
+      style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;outline:none"
+      onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#333'">
+
+    <label style="display:block;font-size:12px;color:#888;margin-bottom:6px">Nombre (opcional)</label>
+    <input id="bm-name" type="text" placeholder="Tu nombre"
+      style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:20px;outline:none"
+      onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#333'">
+
+    <div id="bm-error" style="color:#f44336;font-size:12px;margin-bottom:12px;min-height:16px"></div>
+
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <button id="bm-btn-mp" onclick="doBuy('mercadopago')"
+        style="flex:1;background:#009ee3;color:#fff;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+        🇦🇷 Pagar con Mercado Pago
+      </button>
+      <button id="bm-btn-stripe" onclick="doBuy('stripe')"
+        style="flex:1;background:#635bff;color:#fff;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+        🌎 Pagar con Stripe (USD)
+      </button>
+    </div>
+
+    <div id="bm-loading" style="display:none;text-align:center;color:#888;font-size:12px;padding:8px 0">
+      ⏳ Redirigiendo al checkout…
+    </div>
+
+    <p style="font-size:10px;color:#555;text-align:center;margin-top:8px;line-height:1.6">
+      Tras el pago recibís el ZIP por email · 5 descargas · soporte: exeandino@gmail.com
+    </p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -326,11 +370,63 @@ async function uninstall(slug, name) {
 
 // ── Marketplace buy ────────────────────────────────────────────
 function buyPlugin(slug, name, price) {
-  // TODO: integrar con sistema de pagos (Mercado Pago / Stripe)
-  // Por ahora redirige a GitHub o email de contacto
-  const msg = `Plugin: ${name}\nPrecio: USD ${price}\n\nPara adquirirlo, contactá a:\nexeandino@gmail.com\n\nUna vez abonado recibís el ZIP para subir desde este panel.`;
-  alert(msg);
+  const modal = document.getElementById('buy-modal');
+  document.getElementById('bm-title').textContent  = name;
+  document.getElementById('bm-price-usd').textContent = `USD ${price}`;
+  document.getElementById('bm-price-ars').textContent = `≈ ARS ${(price * 1400).toLocaleString('es-AR')}`;
+  document.getElementById('bm-slug').value  = slug;
+  document.getElementById('bm-email').value = '';
+  document.getElementById('bm-name').value  = '';
+  document.getElementById('bm-error').textContent = '';
+  document.getElementById('bm-btn-mp').disabled     = false;
+  document.getElementById('bm-btn-stripe').disabled = false;
+  document.getElementById('bm-loading').style.display = 'none';
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('bm-email').focus(), 100);
 }
+
+function closeBuyModal() {
+  document.getElementById('buy-modal').style.display = 'none';
+}
+
+async function doBuy(gateway) {
+  const email = document.getElementById('bm-email').value.trim();
+  const name  = document.getElementById('bm-name').value.trim();
+  const slug  = document.getElementById('bm-slug').value;
+  const errEl = document.getElementById('bm-error');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Ingresá un email válido para recibir el link de descarga.';
+    return;
+  }
+  errEl.textContent = '';
+
+  document.getElementById('bm-btn-mp').disabled     = true;
+  document.getElementById('bm-btn-stripe').disabled = true;
+  document.getElementById('bm-loading').style.display = 'block';
+
+  try {
+    const r = await fetch('api/checkout.php', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slug, gateway, email, buyer_name: name })
+    });
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error);
+    // Redirigir al gateway de pago
+    window.location.href = j.checkout_url;
+  } catch(e) {
+    errEl.textContent = '⚠ ' + e.message;
+    document.getElementById('bm-btn-mp').disabled     = false;
+    document.getElementById('bm-btn-stripe').disabled = false;
+    document.getElementById('bm-loading').style.display = 'none';
+  }
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeBuyModal();
+});
 
 // ── Toast ──────────────────────────────────────────────────────
 function showToast(msg, type = 'ok') {

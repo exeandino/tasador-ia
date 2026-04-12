@@ -130,6 +130,39 @@ return [
         'ai_photo_weight'   => 5,
     ],
 
+    // ── URL del sitio (necesario para pagos y webhooks) ─────────────────────
+    'site_url' => 'https://tudominio.com/tasador',  // ← SIN barra al final — igual que app_url
+
+    // ── Mercado Pago — pagos en Argentina (ARS) ──────────────────────────────
+    // Crear cuenta y app en: https://www.mercadopago.com.ar/developers/panel/app
+    //
+    // Modo PRODUCCIÓN:  usar Credenciales Productivas
+    // Modo TEST:        usar Credenciales de Prueba  (test_mode: true)
+    //
+    // Webhook IPN: configurar en tu app MP apuntando a:
+    //   https://tudominio.com/tasador/api/payment_webhook.php?gateway=mp
+    //   Eventos a activar: payment
+    //
+    'mercadopago' => [
+        'access_token' => '',       // ← APP_USR-xxxx o TEST-xxxx (de Credenciales)
+        'public_key'   => '',       // ← APP_USR-yyyy o TEST-yyyy (solo para frontend si lo necesitás)
+        'test_mode'    => true,     // ← false en producción
+    ],
+
+    // ── Stripe — pagos internacionales (USD) ─────────────────────────────────
+    // Crear cuenta en: https://dashboard.stripe.com
+    //
+    // Webhook: en Stripe Dashboard → Developers → Webhooks → Add endpoint
+    //   URL: https://tudominio.com/tasador/api/payment_webhook.php?gateway=stripe
+    //   Eventos: checkout.session.completed
+    //   Copiar el "Signing secret" (whsec_xxx) en webhook_secret
+    //
+    'stripe' => [
+        'secret_key'     => '',     // ← sk_test_xxx (test) | sk_live_xxx (producción)
+        'public_key'     => '',     // ← pk_test_xxx | pk_live_xxx (no usado por ahora)
+        'webhook_secret' => '',     // ← whsec_xxx  (del endpoint del webhook en Stripe Dashboard)
+    ],
+
     // ── MercadoLibre — OAuth para scraping de materiales ────────────────────
     // Opcional: si el servidor tiene acceso a api.mercadolibre.com, el bookmarklet
     // de materiales BIM usa esto para autenticarse. Si el servidor está bloqueado
