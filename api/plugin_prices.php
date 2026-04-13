@@ -14,6 +14,14 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
+// CORS: el endpoint ?action=list es público y debe ser accesible
+// desde cualquier instalación de TasadorIA (GitHub installs)
+$action_early = $_GET['action'] ?? '';
+if ($action_early === 'list' || $action_early === '') {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET');
+}
+
 function out(array $d, int $code = 200): void {
     http_response_code($code);
     echo json_encode($d, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

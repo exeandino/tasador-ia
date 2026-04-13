@@ -135,6 +135,14 @@ return [
     // ── URL del sitio (necesario para pagos y webhooks) ─────────────────────
     'site_url' => 'https://tudominio.com/tasador',  // ← SIN barra al final — igual que app_url
 
+    // ── Marketplace central de plugins ───────────────────────────────────────
+    // URL del servidor donde se venden los plugins.
+    // - Si instalás TasadorIA desde GitHub (instalación de tercero):
+    //     dejá este valor como está → comprás los plugins en anperprimo.com
+    // - Si SOS el dueño del marketplace (anperprimo.com):
+    //     cambiá a tu propio site_url para usar el catálogo local
+    'marketplace_url' => 'https://anperprimo.com/tasador',
+
     // ── Mercado Pago — pagos en Argentina (ARS) ──────────────────────────────
     // Crear cuenta y app en: https://www.mercadopago.com.ar/developers/panel/app
     //
