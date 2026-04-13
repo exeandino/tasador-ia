@@ -43,7 +43,7 @@ try {
         [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]
     );
 } catch (\Throwable $e) {
-    fail('Error de base de datos. Contactá a soporte: exeandino@gmail.com', 500);
+    fail('Error de base de datos. Contactá a soporte: '.($cfg['admin_email'] ?? $cfg['contact_email'] ?? 'soporte@tasadoria.com'), 500);
 }
 
 $stmt = $pdo->prepare("SELECT * FROM tasador_purchases WHERE download_token=? LIMIT 1");
@@ -58,7 +58,7 @@ if ($row['download_expires'] && strtotime($row['download_expires']) < time()) {
 
 $maxDownloads = 5; // máximo 5 descargas por compra
 if ($row['download_count'] >= $maxDownloads) {
-    fail("Alcanzaste el límite de {$maxDownloads} descargas para esta compra. Contactá a soporte si necesitás más: exeandino@gmail.com");
+    fail("Alcanzaste el límite de {$maxDownloads} descargas. Contactá a soporte: ".($cfg['admin_email'] ?? $cfg['contact_email'] ?? 'soporte@tasadoria.com'));
 }
 
 // Buscar el ZIP del plugin
@@ -71,7 +71,7 @@ if (!is_file($zipPath)) {
     $pluginDir = __DIR__ . '/../plugins/' . $slug . '/';
     if (!is_dir($pluginDir)) {
         error_log("[TasadorIA Download] Plugin dir not found: $pluginDir");
-        fail('El archivo del plugin no está disponible en este momento. Contactá a soporte: exeandino@gmail.com', 404);
+        fail('El archivo del plugin no está disponible. Contactá a soporte: '.($cfg['admin_email'] ?? $cfg['contact_email'] ?? 'soporte@tasadoria.com'), 404);
     }
     // Crear ZIP al vuelo
     if (!is_dir($zipDir)) mkdir($zipDir, 0755, true);

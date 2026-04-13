@@ -97,3 +97,84 @@ INSERT INTO `zone_prices` (`city_key`,`zone_key`,`zone_label`,`price_min`,`price
 ('cordoba','general','Córdoba Capital (general)',900,1200,1600,'USD','Zonaprop Q1 2025'),
 ('cordoba','nueva_cordoba','Nueva Córdoba',1400,1750,2200,'USD','Zonaprop Q1 2025')
 ON DUPLICATE KEY UPDATE price_min=VALUES(price_min), price_avg=VALUES(price_avg), price_max=VALUES(price_max), updated_at=NOW(), source=VALUES(source);
+
+-- ═══════════════════════════════════════════════════════════════
+-- MARKETPLACE DE PLUGINS — v5
+-- ═══════════════════════════════════════════════════════════════
+
+-- Catálogo de plugins disponibles para venta (el dueño del sitio configura esto)
+CREATE TABLE IF NOT EXISTS `tasador_plugin_prices` (
+  `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slug`         VARCHAR(80)  NOT NULL,
+  `name`         VARCHAR(120) NOT NULL,
+  `description`  TEXT         DEFAULT NULL,
+  `icon`         VARCHAR(10)  DEFAULT '🔌',
+  `price_usd`    DECIMAL(8,2) NOT NULL DEFAULT 0,
+  `active`       TINYINT(1)   NOT NULL DEFAULT 1,
+  `has_zip`      TINYINT(1)   NOT NULL DEFAULT 0,
+  `sort_order`   TINYINT      NOT NULL DEFAULT 99,
+  `created_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Plugins instalados en el sistema
+CREATE TABLE IF NOT EXISTS `tasador_plugins` (
+  `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slug`         VARCHAR(80)  NOT NULL,
+  `name`         VARCHAR(120) NOT NULL,
+  `version`      VARCHAR(20)  NOT NULL DEFAULT '1.0.0',
+  `author`       VARCHAR(120) DEFAULT NULL,
+  `description`  TEXT         DEFAULT NULL,
+  `requires`     VARCHAR(20)  DEFAULT '5.0',
+  `active`       TINYINT(1)   NOT NULL DEFAULT 0,
+  `settings`     JSON         DEFAULT NULL,
+  `installed_at` DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Compras / pagos de plugins
+CREATE TABLE IF NOT EXISTS `tasador_purchases` (
+  `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `order_id`          VARCHAR(100) NOT NULL,
+  `plugin_slug`       VARCHAR(80)  NOT NULL,
+  `plugin_name`       VARCHAR(120) NOT NULL,
+  `gateway`           ENUM('mercadopago','stripe','manual') NOT NULL DEFAULT 'mercadopago',
+  `gateway_payment_id`VARCHAR(200) DEFAULT NULL,
+  `buyer_email`       VARCHAR(150) NOT NULL,
+  `buyer_name`        VARCHAR(120) DEFAULT NULL,
+  `price_usd`         DECIMAL(8,2) NOT NULL,
+  `price_local`       DECIMAL(12,2) DEFAULT NULL,
+  `currency_local`    VARCHAR(10)  DEFAULT 'ARS',
+  `status`            ENUM('pending','approved','rejected','cancelled','refunded') NOT NULL DEFAULT 'pending',
+  `download_token`    CHAR(64)     DEFAULT NULL,
+  `download_expires`  DATETIME     DEFAULT NULL,
+  `download_count`    SMALLINT     NOT NULL DEFAULT 0,
+  `download_used`     TINYINT(1)   NOT NULL DEFAULT 0,
+  `ip`                VARCHAR(45)  DEFAULT NULL,
+  `webhook_raw`       LONGTEXT     DEFAULT NULL,
+  `created_at`        DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`        DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `order_id` (`order_id`),
+  KEY `download_token` (`download_token`),
+  KEY `buyer_email` (`buyer_email`),
+  KEY `status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos por defecto del catálogo (el dueño puede editar precios y descripciones)
+INSERT INTO `tasador_plugin_prices` (`slug`,`name`,`description`,`icon`,`price_usd`,`active`,`sort_order`) VALUES
+('bim-materiales', 'BIM Materiales ML',    'Actualización automática de precios de construcción desde MercadoLibre. Scraping inteligente con mapeo de materiales y ajuste por ICC INDEC.',                   '🏗', 29.00, 1, 1),
+('icc-indec',      'ICC INDEC Automático', 'Sincronización automática con el Índice del Costo de la Construcción del INDEC. Ajuste masivo de costos por zona con un clic.',                                '📊', 19.00, 1, 2),
+('ia-fotos',       'IA Fotos Pro',         'Análisis avanzado de fotos con Claude Vision / GPT-4o. Detección de reformas, materiales premium, estado real y ajuste automático ±15%.',                    '📸', 29.00, 1, 3),
+('apify-sync',     'Apify Sync',           'Scraping mensual automático de Zonaprop, Argenprop y Properati vía Apify. Mantiene los datos de mercado actualizados sin intervención manual.',                '🤖', 29.00, 1, 4),
+('escrituras',     'Gestión Documental',   'Panel de escrituras y boletos. Seguimiento de estado legal, alertas de vencimiento y generación de informes para escribanos.',                                 '📋', 19.00, 1, 5),
+('wp-publish',     'WP Publish',           'Publica propiedades tasadas directamente en WordPress/Houzez con un clic. Sincronización bidireccional y templates configurables.',                             '🌐', 19.00, 1, 6),
+('ciudades-extra',  'Ciudades Extra LATAM', 'Paquete extendido de ciudades: Uruguay, Chile, Colombia, México y Miami/Florida con zonas, precios de mercado y extractores específicos.',                   '🗺', 19.00, 1, 7),
+('crm-export',     'CRM Export Pro',       'Exportación avanzada de leads y tasaciones a Hubspot, Salesforce, Google Sheets, Mailchimp y Zoho. Webhooks configurables por evento.',                      '📤', 29.00, 1, 8)
+ON DUPLICATE KEY UPDATE
+  `name`=VALUES(`name`), `description`=VALUES(`description`),
+  `icon`=VALUES(`icon`), `sort_order`=VALUES(`sort_order`);

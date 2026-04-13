@@ -1539,7 +1539,7 @@ function plFilter() {
       : '';
 
     const delta = m.delta_pct !== null
-      ? `<span style="color:${m.delta_pct>0?'#f44336':m.delta_pct<0?'var(--green)':'var(--muted)';font-weight:600}">${m.delta_pct>0?'+':''}${m.delta_pct}%</span>`
+      ? `<span style="color:${m.delta_pct>0?'#f44336':m.delta_pct<0?'var(--green)':'var(--muted)'};font-weight:600">${m.delta_pct>0?'+':''}${m.delta_pct}%</span>`
       : '<span style="color:var(--muted)">—</span>';
 
     const srcBadge = m.source === 'mercadolibre'

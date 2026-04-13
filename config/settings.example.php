@@ -20,9 +20,11 @@ return [
     'agency_phone'  => '+54 000 000-0000',
     'agency_email'  => 'info@tudominio.com',    // ← recibe los leads
     'agency_web'    => 'https://tudominio.com',
+    'brand_name'    => 'TasadorIA',             // ← nombre que aparece en los paneles admin
 
     // ── Panel admin ──────────────────────────────────────────────────────────
     'admin_pass'    => 'cambiar_esta_clave',    // ← contraseña del admin.php
+    'admin_email'   => 'info@tudominio.com',    // ← email que aparece en links de soporte (plugins, descargas)
 
     // ── Base de datos MySQL ──────────────────────────────────────────────────
     // Crear en cPanel/CloudPanel: base "tasador_db", usuario "tasador_user"
