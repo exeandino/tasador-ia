@@ -34,8 +34,13 @@ $marketplaceUrl = rtrim($cfg['marketplace_url'] ?? 'https://anperprimo.com/tasad
 $usdRate        = (float)($cfg['ars_usd_rate']  ?? 1450);
 $brandName      = $cfg['brand_name'] ?? 'TasadorIA';
 
-// Modo central: este servidor ES el marketplace
-$isCentral = ($siteUrl !== '' && $siteUrl === $marketplaceUrl);
+// Modo central: este servidor ES el marketplace.
+// Se detecta por configuración explícita (site_url == marketplace_url)
+// o automáticamente por HTTP_HOST si site_url no está configurado aún.
+$httpHost = strtolower($_SERVER['HTTP_HOST'] ?? '');
+$mktHost  = strtolower(parse_url($marketplaceUrl, PHP_URL_HOST) ?? '');
+$isCentral = ($siteUrl !== '' && $siteUrl === $marketplaceUrl)
+          || (empty($siteUrl) && $httpHost !== '' && $httpHost === $mktHost);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -352,21 +357,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── MARKETPLACE ─────────────────────────────────────────────────────────────
 async function loadMarketplace() {
   const grid = document.getElementById('market-grid');
+  grid.innerHTML = '<div class="empty-state" style="color:var(--muted)">Cargando cat&aacute;logo&hellip;</div>';
   try {
     // Catálogo siempre desde el servidor central (puede ser local si IS_CENTRAL)
     const mktUrl = MARKETPLACE + '/api/plugin_prices.php?action=list';
-    const [mr, ir] = await Promise.all([
-      fetch(mktUrl),
-      fetch('api/plugin_manager.php?action=list'),
-    ]);
-    const mkt  = await mr.json();
-    const inst = await ir.json();
+    let mr, ir;
+    try {
+      [mr, ir] = await Promise.all([
+        fetch(mktUrl),
+        fetch('api/plugin_manager.php?action=list'),
+      ]);
+    } catch(fetchErr) {
+      throw new Error('No se pudo conectar: ' + fetchErr.message);
+    }
+    if (!mr.ok) {
+      throw new Error(`El servidor central devolvió HTTP ${mr.status}.<br><small>Verificá que <code>api/plugin_prices.php</code> esté subido al servidor central y que hayas ejecutado el <code>install.sql</code> actualizado.</small>`);
+    }
+    const mktText = await mr.text();
+    if (!mktText || !mktText.trim()) {
+      throw new Error('El servidor central devolvió respuesta vacía.<br><small>Verificá que <code>api/plugin_prices.php</code> esté subido al servidor y que <code>install.sql</code> se haya ejecutado.</small>');
+    }
+    let mkt, inst;
+    try {
+      mkt = JSON.parse(mktText);
+    } catch(pe) {
+      const preview = mktText.substring(0, 300).replace(/</g,'&lt;');
+      throw new Error(`Respuesta inválida del catálogo (${pe.message}).<br><small>${preview}</small>`);
+    }
+    try { inst = await ir.json(); } catch(e) { inst = {plugins:[]}; }
     _catPlugins = mkt.plugins || [];
     const isl   = (inst.plugins || []).map(p => p.slug);
     renderMarket(_catPlugins, isl);
     if (IS_CENTRAL) renderCatalog(_catPlugins);
   } catch(e) {
-    grid.innerHTML = `<div class="empty-state">Error al cargar el marketplace: ${e.message}</div>`;
+    grid.innerHTML = `<div class="empty-state">⚠ ${e.message}</div>`;
   }
 }
 
