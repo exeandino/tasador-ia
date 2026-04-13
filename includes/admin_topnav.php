@@ -168,6 +168,16 @@ if (!empty($pdo)) {
       📈 <span>Mercado</span>
     </a>
 
+    <a href="admin_cierres.php"
+       class="ta-nav-link <?= $_nav_current==='cierres' ? 'active' : '' ?>">
+      🤝 <span>Cierres</span>
+    </a>
+
+    <a href="admin_croquis.php"
+       class="ta-nav-link <?= $_nav_current==='croquis' ? 'active' : '' ?>">
+      📐 <span>Croquis</span>
+    </a>
+
     <a href="admin_plugins.php"
        class="ta-nav-link <?= $_nav_current==='plugins' ? 'active' : '' ?>">
       🔌 <span>Plugins</span>

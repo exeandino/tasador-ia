@@ -178,3 +178,114 @@ INSERT INTO `tasador_plugin_prices` (`slug`,`name`,`description`,`icon`,`price_u
 ON DUPLICATE KEY UPDATE
   `name`=VALUES(`name`), `description`=VALUES(`description`),
   `icon`=VALUES(`icon`), `sort_order`=VALUES(`sort_order`);
+
+-- ═══════════════════════════════════════════════════════════════
+-- PRECIOS DE CIERRE REALES — v6
+-- Precios efectivamente pagados (escritura/boleto), no de publicación
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS `market_closings` (
+  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `address`       VARCHAR(255) NOT NULL,
+  `city`          VARCHAR(80)  NOT NULL DEFAULT '',
+  `zone`          VARCHAR(80)  NOT NULL DEFAULT '',
+  `property_type` ENUM('departamento','casa','ph','local','oficina','terreno','cochera','galpon') NOT NULL DEFAULT 'departamento',
+  `operation`     ENUM('venta','alquiler') NOT NULL DEFAULT 'venta',
+  `covered_area`  DECIMAL(8,2) DEFAULT NULL,
+  `total_area`    DECIMAL(8,2) DEFAULT NULL,
+  `price_usd`     DECIMAL(12,2) NOT NULL,
+  `price_ars`     DECIMAL(16,2) DEFAULT NULL,
+  `price_per_m2`  DECIMAL(10,2) DEFAULT NULL,
+  `close_date`    DATE NOT NULL,
+  `source`        ENUM('escritura','boleto','testimonio','inmobiliaria','subasta','otro') NOT NULL DEFAULT 'testimonio',
+  `notes`         TEXT DEFAULT NULL,
+  `bedrooms`      TINYINT UNSIGNED DEFAULT NULL,
+  `bathrooms`     TINYINT UNSIGNED DEFAULT NULL,
+  `lat`           DECIMAL(10,7) DEFAULT NULL,
+  `lng`           DECIMAL(10,7) DEFAULT NULL,
+  `created_at`    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `zone_type` (`city`,`zone`,`property_type`),
+  KEY `close_date` (`close_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════════════════════════
+-- CORRALONES / PROVEEDORES LOCALES — v6
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS `local_suppliers` (
+  `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`       VARCHAR(120) NOT NULL,
+  `city`       VARCHAR(80)  DEFAULT '',
+  `address`    VARCHAR(255) DEFAULT '',
+  `phone`      VARCHAR(40)  DEFAULT '',
+  `web`        VARCHAR(255) DEFAULT '',
+  `lat`        DECIMAL(10,7) DEFAULT NULL,
+  `lng`        DECIMAL(10,7) DEFAULT NULL,
+  `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+  `notes`      TEXT DEFAULT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `local_material_prices` (
+  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `supplier_id`   INT UNSIGNED NOT NULL,
+  `material_slug` VARCHAR(80)  NOT NULL,
+  `material_name` VARCHAR(120) NOT NULL,
+  `category`      VARCHAR(60)  DEFAULT 'general',
+  `price_ars`     DECIMAL(12,2) NOT NULL,
+  `unit`          VARCHAR(20)  NOT NULL DEFAULT 'unidad',
+  `brand`         VARCHAR(80)  DEFAULT '',
+  `notes`         VARCHAR(255) DEFAULT '',
+  `price_date`    DATE NOT NULL,
+  `created_at`    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `supplier_material` (`supplier_id`,`material_slug`),
+  KEY `material_date` (`material_slug`,`price_date`),
+  CONSTRAINT `fk_lmp_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `local_suppliers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════════════════════════
+-- CROQUIS — v6
+-- Plantas de propiedades dibujadas en el editor
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS `property_croquis` (
+  `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title`       VARCHAR(120) NOT NULL DEFAULT 'Sin título',
+  `address`     VARCHAR(255) DEFAULT '',
+  `city`        VARCHAR(80)  DEFAULT '',
+  `zone`        VARCHAR(80)  DEFAULT '',
+  `floor_data`  LONGTEXT     NOT NULL COMMENT 'JSON con rooms[], walls[], metadata',
+  `total_m2`    DECIMAL(8,2) DEFAULT NULL,
+  `svg_preview` LONGTEXT     DEFAULT NULL COMMENT 'SVG miniatura del plano',
+  `tasacion_code` VARCHAR(20) DEFAULT NULL COMMENT 'Vincular con código TA-XXXXXXXX',
+  `created_at`  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `tasacion_code` (`tasacion_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════════════════════════
+-- CONSENSO MULTI-IA — log de llamadas y resultados
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS `ai_consensus_log` (
+  `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tasacion_code`   VARCHAR(20) DEFAULT NULL,
+  `provider`        VARCHAR(30) NOT NULL,
+  `model`           VARCHAR(60) NOT NULL,
+  `price_suggested` DECIMAL(12,2) DEFAULT NULL,
+  `price_min`       DECIMAL(12,2) DEFAULT NULL,
+  `price_max`       DECIMAL(12,2) DEFAULT NULL,
+  `confidence`      TINYINT UNSIGNED DEFAULT NULL COMMENT '0-100',
+  `reasoning`       TEXT DEFAULT NULL,
+  `response_ms`     INT UNSIGNED DEFAULT NULL,
+  `error`           VARCHAR(255) DEFAULT NULL,
+  `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `tasacion_code` (`tasacion_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
