@@ -8,22 +8,25 @@ session_start();
 $cfg = is_file(__DIR__.'/config/settings.php') ? require __DIR__.'/config/settings.php' : [];
 $zones_all = is_file(__DIR__.'/config/zones.php') ? require __DIR__.'/config/zones.php' : [];
 
-// Auth simple — acepta la sesión de admin.php (ta_admin) o login propio (bim_ok)
-if (!defined('ADMIN_PASS')) define('ADMIN_PASS', $cfg['admin_password'] ?? 'anper2025');
-$pass = ADMIN_PASS;
+// Auth — acepta sesión del admin principal (ta_admin) o login propio (bim_ok)
+if (!defined('ADMIN_PASS')) define('ADMIN_PASS', $cfg['admin_pass'] ?? $cfg['admin_password'] ?? 'anper2025');
 if (!isset($_SESSION['bim_ok']) && !isset($_SESSION['ta_admin'])) {
-    if (($_POST['p'] ?? '') === $pass) { $_SESSION['bim_ok'] = true; }
-    else {
-        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BIM Login</title>
+    if (($_POST['p'] ?? '') === ADMIN_PASS) {
+        $_SESSION['bim_ok'] = true;
+        $_SESSION['ta_admin'] = true; // unificar sesión
+    } else {
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BIM — TasadorIA</title>
         <style>*{box-sizing:border-box}body{font-family:system-ui;background:#0f0f0f;color:#e0e0e0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
         form{background:#1a1a1a;padding:32px;border-radius:14px;border:1px solid #2a2a2a;min-width:280px;text-align:center}
-        h2{margin:0 0 20px;color:#c9a84c;font-size:18px}
+        h2{margin:0 0 4px;color:#c9a84c;font-size:18px}p{color:#555;font-size:11px;margin:0 0 20px}
         input{width:100%;padding:10px 14px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;margin-bottom:12px}
         button{width:100%;padding:10px;background:#c9a84c;color:#000;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+        a{color:#555;font-size:12px;display:block;margin-top:14px}
         </style></head><body>
-        <form method="post"><h2>🏗 TasadorIA BIM</h2>
+        <form method="post"><h2>🏗 TasadorIA</h2><p>Mapa BIM · Panel de Construcción</p>
         <input type="password" name="p" placeholder="Contraseña admin" autofocus>
-        <button>Ingresar</button></form></body></html>';
+        <button>Ingresar</button>
+        <a href="admin.php">← Ir al admin principal</a></form></body></html>';
         exit;
     }
 }
@@ -232,7 +235,9 @@ table.summary tr:hover td{background:rgba(255,255,255,.03)}
 </head>
 <body>
 
-<!-- TOP BAR -->
+<?php $currentPanel = 'bim'; require __DIR__.'/includes/admin_topnav.php'; ?>
+
+<!-- BIM CONTROLS BAR -->
 <div class="topbar">
   <h1>🏗 BIM · Mapa de Calor de Construcción</h1>
   <span class="badge-db <?=$pdo?'':'nobd'?>"><?=htmlspecialchars($dbStatus)?></span>
@@ -1702,8 +1707,12 @@ async function runMlUpdate() {
 
 // ── INIT MAP ─────────────────────────────────────────────────
 function setMapHeight() {
+  // Restar todas las barras fijas: nav principal (.ta-topnav) + barra BIM (.topbar)
+  const nav    = document.querySelector('.ta-topnav');
   const topbar = document.querySelector('.topbar');
-  const h = window.innerHeight - (topbar ? topbar.offsetHeight : 60);
+  const navH    = nav    ? nav.offsetHeight    : 46;
+  const topbarH = topbar ? topbar.offsetHeight : 60;
+  const h = window.innerHeight - navH - topbarH;
   document.getElementById('map').style.height = Math.max(h, 300) + 'px';
 }
 

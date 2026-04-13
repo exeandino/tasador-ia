@@ -3,11 +3,13 @@
 // tasador/admin_market.php — Datos de mercado + Zonaprop en vivo
 // Acceso: https://anperprimo.com/tasador/admin_market.php
 
-define('ADMIN_PASS', 'anper2025');
 session_start();
-if (isset($_POST['login_pass'])) { if ($_POST['login_pass'] === ADMIN_PASS) { $_SESSION['mkt_auth'] = true; } else $loginErr = 'Contraseña incorrecta'; }
+$cfg_tmp = is_file(__DIR__.'/config/settings.php') ? require __DIR__.'/config/settings.php' : [];
+define('ADMIN_PASS', $cfg_tmp['admin_pass'] ?? $cfg_tmp['admin_password'] ?? 'anper2025');
+if (isset($_POST['login_pass'])) { if ($_POST['login_pass'] === ADMIN_PASS) { $_SESSION['ta_admin'] = true; $_SESSION['mkt_auth'] = true; } else $loginErr = 'Contraseña incorrecta'; }
 if (isset($_GET['logout'])) { session_destroy(); header('Location: admin_market.php'); exit; }
-$logged = ($_SESSION['mkt_auth'] ?? false);
+// Acepta sesión del admin principal (ta_admin) o login propio (mkt_auth)
+$logged = ($_SESSION['ta_admin'] ?? false) || ($_SESSION['mkt_auth'] ?? false);
 
 $cfg = require __DIR__ . '/config/settings.php';
 $zones = require __DIR__ . '/config/zones.php';
@@ -122,12 +124,9 @@ input[type=password]{width:100%;padding:10px 12px;background:var(--bg3);border:1
 </div>
 
 <?php else: ?>
+<?php $currentPanel = 'market'; require __DIR__.'/includes/admin_topnav.php'; ?>
 <div class="header">
-  <div><h1>📊 Datos de Mercado en Vivo</h1><div style="font-size:13px;color:var(--muted)"><?=$totalImported?> listings importados · Comparación con config</div></div>
-  <div style="display:flex;gap:10px">
-    <a href="admin.php" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px">← Admin</a>
-    <a href="?logout=1" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted)">Salir</a>
-  </div>
+  <div><h1>📈 Datos de Mercado en Vivo</h1><div style="font-size:13px;color:var(--muted)"><?=$totalImported?> listings importados · Comparación con config</div></div>
 </div>
 
 <div class="stat-row">

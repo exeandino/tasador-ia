@@ -86,18 +86,7 @@ h2{font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px}
 </head>
 <body>
 
-<div class="topbar">
-  <h1>🔌 TasadorIA</h1>
-  <nav style="display:flex;gap:4px;margin-left:16px">
-    <a href="admin.php">Dashboard</a>
-    <a href="admin_bim.php">BIM</a>
-    <a href="admin_market.php">Mercado</a>
-    <a href="admin_plugins.php" class="active">Plugins</a>
-  </nav>
-  <div style="margin-left:auto;font-size:11px;color:var(--muted)">
-    TasadorIA <span style="color:var(--gold)">v5.0</span>
-  </div>
-</div>
+<?php $currentPanel = 'plugins'; require __DIR__.'/includes/admin_topnav.php'; ?>
 
 <div class="main">
 

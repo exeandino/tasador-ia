@@ -250,11 +250,11 @@ $marketBlendWeight = (float)(($cfg['market'] ?? [])['blend_weight']      ?? 0.30
 <style>
 :root{--bg:#0d0f14;--bg2:#141720;--bg3:#1c2030;--card:#1e2235;--border:#2a2f45;--gold:#c9a84c;--gold2:#f0cc7a;--text:#e8e8f0;--muted:#7a7a9a;--green:#00c896;--red:#ff4f6e;--blue:#4a8ff7;--r:10px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
 a{color:var(--gold);text-decoration:none}
 input,select,button,textarea{font-family:inherit}
 /* Layout */
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:200px;background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;z-index:100}
+.sidebar{width:190px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:10px 0;display:flex;flex-direction:column;overflow-y:auto}
 .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
 .logo h1{color:var(--gold);font-size:18px;font-family:Georgia,serif}
 .logo p{font-size:11px;color:var(--muted)}
@@ -263,7 +263,7 @@ input,select,button,textarea{font-family:inherit}
 .nav-item.active{background:rgba(201,168,76,.1);color:var(--gold);border-left:3px solid var(--gold)}
 .nav-item .icon{width:18px;text-align:center;flex-shrink:0}
 .nav-badge{margin-left:auto;background:var(--gold);color:#0d0f14;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
-.main{margin-left:200px;padding:24px;min-height:100vh}
+.main{flex:1;padding:24px;overflow-y:auto;min-width:0}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
 .topbar h2{font-size:20px;color:var(--text)}
 .panel{display:none}.panel.active{display:block}
@@ -338,7 +338,7 @@ input,select,button,textarea{font-family:inherit}
 .blend-bar{height:18px;border-radius:6px;overflow:hidden;display:flex;margin:10px 0}
 .blend-seg-portal{background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
 .blend-seg-config{background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0d0f14}
-@media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.stats-row{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.sidebar{display:none}.stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -360,25 +360,18 @@ input,select,button,textarea{font-family:inherit}
   </div>
 </div>
 <?php else: ?>
+<?php $currentPanel = 'admin'; require __DIR__.'/includes/admin_topnav.php'; ?>
+<!-- SIDEBAR + MAIN wrapper -->
+<div style="display:flex;flex:1;min-height:0;overflow:hidden">
 <!-- SIDEBAR -->
 <div class="sidebar">
-  <div class="logo">
-    <h1>TasadorIA</h1>
-    <p>Panel admin</p>
-  </div>
   <button class="nav-item active" onclick="showTab('dashboard',this)"><span class="icon">📊</span>Dashboard</button>
-  <button class="nav-item" onclick="showTab('zonas',this)"><span class="icon">🗺</span>Precios y Zonas</button>
+  <button class="nav-item" onclick="showTab('zonas',this)"><span class="icon">🗺</span>Zonas</button>
   <button class="nav-item" onclick="showTab('importar',this)"><span class="icon">📥</span>Importar XML<?php if ($hasTmp): ?><span class="nav-badge">!</span><?php endif;?></button>
   <button class="nav-item" onclick="showTab('leads',this)"><span class="icon">👥</span>Leads<?php if ($leadsHoy): ?><span class="nav-badge"><?=$leadsHoy?></span><?php endif;?></button>
   <button class="nav-item" onclick="showTab('tasaciones',this)"><span class="icon">📋</span>Tasaciones</button>
   <button class="nav-item" onclick="showTab('buscador',this)"><span class="icon">🔍</span>Buscador</button>
-  <button class="nav-item" onclick="showTab('config',this)"><span class="icon">⚙️</span>Configuración</button>
-  <a class="nav-item" href="admin_bim.php" target="_blank" style="text-decoration:none"><span class="icon">🏗</span>Mapa BIM <span style="font-size:9px;color:var(--muted);margin-left:auto">↗</span></a>
-  <a class="nav-item" href="admin_plugins.php" style="text-decoration:none"><span class="icon">🔌</span>Plugins</a>
-  <div style="margin-top:auto;padding:14px 20px;border-top:1px solid var(--border)">
-    <a href="../" style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px">← Ver tasador</a>
-    <a href="?logout=1" style="font-size:12px;color:var(--muted)">Cerrar sesión</a>
-  </div>
+  <button class="nav-item" onclick="showTab('config',this)"><span class="icon">⚙️</span>Config</button>
 </div>
 <!-- MAIN -->
 <div class="main">
@@ -953,6 +946,7 @@ function clearSearch(){
 </div>
 
 </div><!-- /main -->
+</div><!-- /sidebar+main wrapper -->
 <script>
 function showTab(id,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
