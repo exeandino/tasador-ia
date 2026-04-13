@@ -23,9 +23,12 @@ Sistema completo de valuación inmobiliaria inteligente con arquitectura basada 
 - 📊 **Dashboard** — stats globales: tasaciones, leads, listings, USD/ARS
 - 🗺 **Precios y zonas** — comparación config vs datos reales + editor inline
 - 🔍 **Buscador de propiedades** — busca en todos los listings importados por tipo, precio, superficie, zona
-- 📥 **Importar XML** — WordPress/Houzez export directo a la BD
+- 📥 **Importar XML / CSV** — WordPress/Houzez XML + CSV/Excel con plantilla descargable
 - 👥 **Leads** — registro de contactos con datos de la propiedad + exportar CSV
 - 📋 **Tasaciones** — historial completo
+- 🤝 **Cierres reales** — precios de escritura/boleto/testimonio con estadísticas por zona
+- 📐 **Croquis** — editor de planos SVG, exportar PNG, guardar en BD
+- 🏗 **BIM Materiales** — cotización con ML + corralones locales + flete
 - ⚙️ **Configuración** — tipo de cambio, SMTP, IA, URLs
 - 🔌 **Gestor de plugins** — instalar, actualizar y activar módulos de mercado
 
@@ -33,8 +36,24 @@ Sistema completo de valuación inmobiliaria inteligente con arquitectura basada 
 - 🔖 **Bookmarklet multi-portal** — extrae propiedades de cualquier portal en un clic
 - **Portales soportados:** Zonaprop, Argenprop, Ventafe, Mercado Único, y cualquier otro (extractor genérico)
 - 📥 **Importador WordPress XML** — importa exports de Houzez theme directamente
+- 📊 **Importador CSV/Excel** — plantilla descargable, detección automática de columnas
 - 🤖 **Apify opcional** — scraping automático mensual ($2.50/1000 resultados)
 - 📈 **Motor híbrido** — 60% datos reales (si hay ≥3 listings) + 40% configuración
+- 🤝 **Cierres reales** — calibrá el tasador con precios de escritura verificados
+
+### Motor de consenso multi-IA
+
+Cuando tenés varias API keys configuradas, `api/valuar_consensus.php` consulta todas las IAs en paralelo y devuelve un precio consensuado con confianza ponderada.
+
+| Proveedor | Peso IA | Modelo default | API |
+|-----------|---------|----------------|-----|
+| **Motor local** | 30% (fijo) | TasadorIA + datos reales | — |
+| **Claude** (Anthropic) | 35% | claude-opus-4-6 | console.anthropic.com |
+| **GPT-4o** (OpenAI) | 30% | gpt-4o | platform.openai.com |
+| **Gemini** (Google) | 20% | gemini-1.5-pro | aistudio.google.com |
+| **Grok** (xAI) | 15% | grok-3-mini | console.x.ai |
+
+Los pesos son configurables en `config/settings.php`. Si un proveedor falla, su peso se redistribuye entre los activos.
 
 ### Factores de valuación
 | Factor | Impacto |
@@ -194,7 +213,7 @@ nano config/settings.php  # completar BD, email, API key
 
 ### Verificar instalación
 ```
-https://tudominio.com/tasador/api/valuar.php  →  {"status":"ok","php":"8.4.x","version":"5.0"}
+https://tudominio.com/tasador/api/valuar.php  →  {"status":"ok","php":"8.4.x","version":"5.2"}
 ```
 
 ---
@@ -206,23 +225,31 @@ tasador-ia/
 ├── index.php              ← Wizard de tasación (público)
 ├── admin.php              ← Panel admin unificado (protegido)
 ├── admin_market.php       ← Panel datos de mercado + extractores
+├── admin_cierres.php      ← Cierres reales (escrituras, boletos, testimonios)
+├── admin_croquis.php      ← Editor de planos SVG
 ├── admin_plugins.php      ← Gestor de plugins (protegido)
+├── admin_bim.php          ← BIM Materiales + corralones locales + flete
 ├── wp_import.php          ← Importador WordPress XML (usar y borrar)
 ├── embed.js               ← Widget embebible
 ├── multi_extractor.js     ← Bookmarklet universal para portales
-├── install.sql            ← Esquema principal de BD
-├── market_data.sql        ← Tablas para datos de mercado
+├── install.sql            ← Esquema completo de BD (tablas + cierres + croquis + IA log)
+├── market_data.sql        ← Datos de mercado iniciales
 │
 ├── plugins/               ← Directorio de plugins
 │   ├── plugin-loader.php  ← Sistema de carga de plugins
 │   └── [plugins instalados]
 │
 ├── api/
-│   ├── valuar.php         ← Motor de tasación (algoritmo + mercado)
-│   ├── analyze.php        ← Análisis IA de fotos (Claude/OpenAI)
-│   ├── send_email.php     ← Email de resultados y leads
-│   ├── import_market.php  ← Importar datos de scraping CSV/JSON
-│   └── search_properties.php ← Buscador AJAX de propiedades
+│   ├── valuar.php              ← Motor de tasación (algoritmo + mercado)
+│   ├── valuar_consensus.php    ← Consenso multi-IA (Claude+GPT+Gemini+Grok)
+│   ├── closing_prices.php      ← CRUD precios de cierre reales
+│   ├── croquis.php             ← REST para planos de planta
+│   ├── local_suppliers.php     ← Corralones + materiales + flete Haversine
+│   ├── analyze.php             ← Análisis IA de fotos (Claude/OpenAI)
+│   ├── send_email.php          ← Email de resultados y leads
+│   ├── import_market.php       ← Importar datos CSV/JSON
+│   ├── import_csv.php          ← Importador CSV con detección de columnas
+│   └── search_properties.php  ← Buscador AJAX de propiedades
 │
 └── config/
     ├── settings.example.php  ← Template (copiar a settings.php)
@@ -367,6 +394,40 @@ document.addEventListener('tasadorResult', function(e) {
   "poi": {"escuelas": [...], "parques": [...], "shoppings": [...]},
   "expensas": {"ars_mes": 80000, "impacto_pct": 1.5}
 }
+```
+
+### `POST /api/valuar_consensus.php`
+
+Mismo body que `valuar.php`. Llama en paralelo a Claude, GPT-4o, Gemini y Grok (los que tengan API key), y devuelve precio consensuado.
+
+```json
+{
+  "success": true,
+  "consensus": {
+    "suggested": 68000, "min": 61000, "max": 76000,
+    "per_m2": 1046, "confidence": 87, "providers_ok": 4
+  },
+  "providers": {
+    "claude":  {"status":"ok","suggested":67000,"reasoning":"...","weight_pct":24.5},
+    "openai":  {"status":"ok","suggested":69500,"reasoning":"...","weight_pct":21.0},
+    "gemini":  {"status":"ok","suggested":66000,"reasoning":"...","weight_pct":14.0},
+    "grok":    {"status":"ok","suggested":70000,"reasoning":"...","weight_pct":10.5},
+    "local":   {"status":"ok","suggested":65000,"reasoning":"Motor TasadorIA","weight_pct":30.0}
+  }
+}
+```
+
+### `POST /api/closing_prices.php`
+
+```json
+// action: "save" — guardar cierre
+{"action":"save","address":"Rivadavia 1234","city":"Santa Fe Capital","zone":"Candioti Norte",
+ "property_type":"departamento","operation":"venta","covered_area":65,
+ "price_usd":75000,"close_date":"2025-03-15","source":"escritura"}
+
+// action: "list" — listar con filtros (GET params: city, zone, type, operation, limit)
+// action: "stats" — estadísticas por zona (GET params: city)
+// action: "delete" — eliminar {"action":"delete","id":123}
 ```
 
 Ver [docs/API.md](docs/API.md) para documentación completa.
