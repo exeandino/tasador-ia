@@ -54,8 +54,8 @@ $adminKey = ADMIN_PASS;
 <style>
 :root{--bg:#0d0f14;--bg2:#141720;--bg3:#1c2030;--card:#1e2235;--border:#2a2f45;--gold:#c9a84c;--text:#e8e8f0;--muted:#7a7a9a;--green:#00c896;--red:#ff4f6e;--blue:#4a8ff7;--r:10px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;min-height:100vh}
-.wrap{max-width:1100px;margin:0 auto}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;margin:0;padding:0}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
 a{color:var(--gold)}
 h1{color:var(--gold);font-size:22px}
 h2{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--text);margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
@@ -110,9 +110,10 @@ input[type=password]{width:100%;padding:10px 12px;background:var(--bg3);border:1
 .apify-box{background:rgba(74,143,247,.06);border:1px solid rgba(74,143,247,.25);border-radius:10px;padding:16px}
 </style>
 </head>
-<body><div class="wrap">
+<body>
 
 <?php if (!$logged): ?>
+<div class="wrap">
 <div class="login-card">
   <h1 style="text-align:center;margin-bottom:20px">Datos de Mercado</h1>
   <?php if (isset($loginErr)): ?><div style="color:var(--red);font-size:13px;margin-bottom:12px"><?=htmlspecialchars($loginErr)?></div><?php endif;?>
@@ -122,9 +123,11 @@ input[type=password]{width:100%;padding:10px 12px;background:var(--bg3);border:1
     <button type="submit" class="btn btn-gold" style="width:100%">Ingresar</button>
   </form>
 </div>
+</div>
 
 <?php else: ?>
 <?php $currentPanel = 'market'; require __DIR__.'/includes/admin_topnav.php'; ?>
+<div class="wrap">
 <div class="header">
   <div><h1>📈 Datos de Mercado en Vivo</h1><div style="font-size:13px;color:var(--muted)"><?=$totalImported?> listings importados · Comparación con config</div></div>
 </div>
