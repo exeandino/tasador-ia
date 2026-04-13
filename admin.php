@@ -508,10 +508,23 @@ input,select,button,textarea{font-family:inherit}
 
 <!-- ── IMPORTAR XML ──────────────────────────────────────────────────────── -->
 <div class="panel" id="tab-importar">
-  <div class="topbar"><h2>📥 Importar WordPress XML</h2></div>
+  <div class="topbar" style="flex-wrap:wrap;gap:10px">
+    <h2>📥 Importar WordPress XML</h2>
+    <a href="houzez-ejemplo.xml" download="houzez-ejemplo.xml"
+       style="display:inline-flex;align-items:center;gap:7px;padding:7px 16px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.35);border-radius:8px;color:var(--gold);font-size:12px;font-weight:600;text-decoration:none;transition:.15s"
+       onmouseover="this.style.background='rgba(201,168,76,.22)'" onmouseout="this.style.background='rgba(201,168,76,.12)'">
+      ⬇ Descargar XML de ejemplo
+    </a>
+  </div>
   <div class="card">
+    <div style="background:rgba(74,143,247,.07);border:1px solid rgba(74,143,247,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#a0b4d0;line-height:1.7">
+      <strong style="color:var(--blue)">¿No tenés un export de WordPress?</strong>
+      Descargá el ejemplo de arriba, completá los datos de cada propiedad siguiendo los comentarios
+      <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">&lt;!-- ← EDITAR --&gt;</code>
+      y subí el archivo. Cada <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">&lt;item&gt;</code> es una propiedad. Duplicá el bloque para agregar más.
+    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;text-align:center">
-      <div style="padding:12px;background:var(--bg2);border-radius:8px;font-size:13px"><strong style="color:var(--gold);font-size:20px">1</strong><br>Subí el XML de WordPress</div>
+      <div style="padding:12px;background:var(--bg2);border-radius:8px;font-size:13px"><strong style="color:var(--gold);font-size:20px">1</strong><br>Descargá el ejemplo, completalo y subilo</div>
       <div style="padding:12px;background:var(--bg2);border-radius:8px;font-size:13px"><strong style="color:var(--gold);font-size:20px">2</strong><br>Clic en Importar</div>
       <div style="padding:12px;background:var(--bg2);border-radius:8px;font-size:13px"><strong style="color:var(--gold);font-size:20px">3</strong><br>El motor usa los precios reales</div>
     </div>
