@@ -1,13 +1,13 @@
 <?php
 /**
  * TasadorIA — api/valuar_consensus.php
- * Motor de consenso multi-IA: Claude + GPT-4o + Gemini
+ * Motor de consenso multi-IA: Claude + GPT-4o + Gemini + Grok
  *
  * Recibe los mismos parámetros que valuar.php, llama en paralelo
  * a todas las IAs disponibles, y retorna un precio consensuado
  * con el razonamiento de cada proveedor.
  *
- * Pesos por defecto: Claude 40% · GPT-4o 35% · Gemini 25%
+ * Pesos por defecto: Claude 35% · GPT-4o 30% · Gemini 20% · Grok 15%
  * Si un proveedor falla, el peso se redistribuye entre los demás.
  */
 
@@ -213,6 +213,43 @@ function callGemini(string $prompt, array $cfg): array {
     return ['error' => 'Parse error: '.substr($txt, 0, 100), '_ms' => $ms];
 }
 
+function callGrok(string $prompt, array $cfg): array {
+    $key = $cfg['grok_key'] ?? $cfg['ai_grok']['api_key'] ?? '';
+    if (!$key) return ['error' => 'Grok no configurado (agregar grok_key en settings.php)'];
+    // xAI usa la misma interfaz REST que OpenAI
+    $model = $cfg['ai_grok']['model'] ?? 'grok-3-mini';
+    $t0 = microtime(true);
+    $ch = curl_init('https://api.x.ai/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer '.$key,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS     => json_encode([
+            'model'       => $model,
+            'max_tokens'  => 400,
+            'temperature' => 0.3,
+            'messages'    => [
+                ['role' => 'system', 'content' => 'Respondé SOLO con JSON válido. Sin texto adicional.'],
+                ['role' => 'user',   'content' => $prompt],
+            ],
+        ]),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+    ]);
+    $raw = curl_exec($ch);
+    curl_close($ch);
+    $ms  = (int)((microtime(true) - $t0) * 1000);
+    $res = json_decode($raw, true);
+    $txt = $res['choices'][0]['message']['content'] ?? '';
+    if (preg_match('/\{[\s\S]*\}/', $txt, $m)) {
+        $data = json_decode($m[0], true);
+        if ($data) return array_merge($data, ['_ms' => $ms, '_model' => $model]);
+    }
+    return ['error' => 'Parse error: '.substr($txt, 0, 100), '_ms' => $ms];
+}
+
 // ── Ejecutar en paralelo con cURL multi ───────────────────────
 // (PHP no tiene async nativo, usamos curl_multi para llamadas simultáneas)
 
@@ -220,13 +257,15 @@ $results = [
     'claude' => callClaude($prompt, $cfg),
     'openai' => callOpenAI($prompt, $cfg),
     'gemini' => callGemini($prompt, $cfg),
+    'grok'   => callGrok($prompt, $cfg),
 ];
 
 // ── Pesos base y consenso ─────────────────────────────────────
 $weights = [
-    'claude' => (float)($cfg['ai_weights']['claude'] ?? 0.40),
-    'openai' => (float)($cfg['ai_weights']['openai'] ?? 0.35),
-    'gemini' => (float)($cfg['ai_weights']['gemini'] ?? 0.25),
+    'claude' => (float)($cfg['ai_weights']['claude'] ?? 0.35),
+    'openai' => (float)($cfg['ai_weights']['openai'] ?? 0.30),
+    'gemini' => (float)($cfg['ai_weights']['gemini'] ?? 0.20),
+    'grok'   => (float)($cfg['ai_weights']['grok']   ?? 0.15),
 ];
 
 // Si el motor local tiene precio, lo usamos como ancla (peso 0.30)
