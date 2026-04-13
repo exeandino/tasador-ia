@@ -1,0 +1,9 @@
+{
+  "slug":        "escrituras",
+  "name":        "Gestión Documental",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Análisis de escrituras, boletos y documentación con IA. Detecta restricciones, deudas y estado dominial automáticamente.",
+  "requires":    "5.0",
+  "hooks": ["admin_toolbar_buttons"]
+}

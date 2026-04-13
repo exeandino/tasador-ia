@@ -1,0 +1,9 @@
+{
+  "slug":        "wp-publish",
+  "name":        "WP Publish",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Publica propiedades tasadas directamente en WordPress/Houzez con un clic. Sincronización bidireccional y templates configurables.",
+  "requires":    "5.0",
+  "hooks": ["admin_toolbar_buttons"]
+}

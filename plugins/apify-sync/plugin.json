@@ -1,0 +1,9 @@
+{
+  "slug":        "apify-sync",
+  "name":        "Apify Sync",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Scraping mensual automático de Zonaprop, Argenprop y Properati vía Apify. Mantiene los datos de mercado actualizados sin intervención manual.",
+  "requires":    "5.0",
+  "hooks": ["admin_toolbar_buttons"]
+}

@@ -1,0 +1,9 @@
+{
+  "slug":        "ia-fotos",
+  "name":        "IA Fotos Pro",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Análisis avanzado de fotos con Claude Vision / GPT-4o. Detección de reformas, materiales premium, estado real y ajuste automático ±15%.",
+  "requires":    "5.0",
+  "hooks": ["wizard_photo_analysis"]
+}

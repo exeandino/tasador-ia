@@ -1,0 +1,38 @@
+# ============================================================
+# TasadorIA — .gitignore
+# ============================================================
+
+# Configuración con credenciales reales (DB, SMTP, API keys)
+config/settings.php
+
+# Backups de BD
+*.sql.bak
+tasador64261.sql
+
+# Archivos temporales
+*.tmp
+/tmp/
+
+# Scripts de test y diagnóstico (temporales — borrar del servidor después de usar)
+diagnostico.php
+test_*.php
+*_test.php
+usd_fix.php
+api/ml_test.php
+
+# WordPress XML — archivos de importación grandes
+*.xml
+!.github/**/*.xml
+
+# Logs
+*.log
+error_log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp

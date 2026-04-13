@@ -1,0 +1,9 @@
+{
+  "slug":        "crm-export",
+  "name":        "CRM Export Pro",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Exportación avanzada de leads y tasaciones a Hubspot, Salesforce, Google Sheets, Mailchimp y Zoho. Webhooks configurables por evento.",
+  "requires":    "5.0",
+  "hooks": ["lead_saved"]
+}

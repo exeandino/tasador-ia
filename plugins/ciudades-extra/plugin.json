@@ -1,0 +1,9 @@
+{
+  "slug":        "ciudades-extra",
+  "name":        "Ciudades Extra LATAM",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Paquete extendido de ciudades: Uruguay, Chile, Colombia, México y Miami/Florida con zonas, precios de mercado y extractores específicos.",
+  "requires":    "5.0",
+  "hooks": ["zones_config"]
+}

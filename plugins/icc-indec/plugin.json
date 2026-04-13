@@ -1,0 +1,9 @@
+{
+  "slug":        "icc-indec",
+  "name":        "ICC INDEC Automático",
+  "version":     "1.0.0",
+  "author":      "TasadorIA",
+  "description": "Sincronización automática con el Índice del Costo de la Construcción del INDEC. Ajuste masivo de costos por zona con un clic.",
+  "requires":    "5.0",
+  "hooks": ["admin_toolbar_buttons"]
+}
