@@ -364,61 +364,77 @@
 
         realCards.forEach(function (card) {
             try {
+                // ── Datos desde el ALT de la imagen (muy confiable en Zonaprop) ──
+                // Zonaprop escribe: "Departamento · 114m² · 3 Ambientes · 1 Cochera · Venta..."
+                var altText = '';
+                var imgEl = card.querySelector('img[alt]');
+                if (imgEl) altText = imgEl.getAttribute('alt') || '';
+
                 // ── Precio ──────────────────────────────────────────────
-                // Estrategia: buscar el LEAF más pequeño que contenga el precio
-                // para evitar concatenar USD + ARS del mismo contenedor
                 var priceNum = 0, currency = 'USD';
+                var cardText = card.textContent;
 
-                // 1. Buscar leaf-span/b que empiece con USD/U$D/$
-                var allLeafs = card.querySelectorAll('span,b,strong,p');
-                var priceToken = '';
-                for (var li = 0; li < allLeafs.length; li++) {
-                    var leaf = allLeafs[li];
-                    // Solo elementos "hoja" (sin hijos de tipo element) o con pocos hijos
-                    var txt = leaf.childElementCount === 0 ? leaf.textContent.trim()
-                            : Array.from(leaf.childNodes)
-                                   .filter(function(n){ return n.nodeType === 3; })
-                                   .map(function(n){ return n.textContent; })
-                                   .join('').trim();
-                    if (!txt) continue;
-                    // ¿Parece un precio? Empieza con moneda o tiene patrón numérico
-                    if (/^(USD|U\$D|u\$s)\s*[\d.,]+/i.test(txt) || /^[\d.,]+\s*(USD|U\$D)/i.test(txt)) {
-                        priceToken = txt; currency = 'USD'; break;
-                    }
-                    if (/^\$\s*[\d.,]+/.test(txt) && !/USD/i.test(txt)) {
-                        priceToken = txt; currency = 'ARS';
-                        // Seguir buscando por si hay un USD después
-                        continue;
-                    }
+                // Regex sobre TODO el texto del card — busca token "USD NNN.NNN" o "$ NNN.NNN.NNN"
+                // Captura el PRIMERO que aparezca para evitar mezclar USD + ARS
+                var usdMatch = cardText.match(/(?:USD|U\$D|u\$s)\s*([\d.,]+)/i);
+                var arsMatch = cardText.match(/\$\s*([\d.,]+)/);
+
+                if (usdMatch) {
+                    priceNum = parseArPrice(usdMatch[1]);
+                    currency = 'USD';
+                } else if (arsMatch) {
+                    priceNum = parseArPrice(arsMatch[1]);
+                    currency = 'ARS';
                 }
-                if (!priceToken) return; // sin precio, saltar card
 
-                // Extraer solo los dígitos del token de precio (ya es un solo precio)
-                var numStr = priceToken.replace(/[^0-9.,]/g, '').trim();
-                priceNum = parseArPrice(numStr);
-                if (!priceNum || priceNum < 1000) return;
+                if (!priceNum || priceNum < 5000) return; // sin precio válido, saltar
 
                 // ── Superficie ───────────────────────────────────────────
                 var areaNum = null;
-                var cardText = card.textContent;
 
-                // Capturar número ANTES de "m²" o "m2" con soporte de miles (punto)
-                var m2regex = /([\d]{1,4}(?:[.,]\d{1,3})?)\s*m[²2]/gi;
-                var m2match;
-                while ((m2match = m2regex.exec(cardText)) !== null) {
-                    var mval = parseArArea(m2match[1]);
-                    if (mval > 5 && mval < 5000) { areaNum = mval; break; }
+                // 1. Desde el alt de la imagen: "114m²" o "114 m²"
+                if (altText) {
+                    var altM2 = altText.match(/([\d]{2,4}(?:[.,]\d{1,3})?)\s*m[²2]/i);
+                    if (altM2) areaNum = parseArArea(altM2[1]);
+                }
+
+                // 2. Desde el texto del card (con soporte miles argentino)
+                if (!areaNum) {
+                    var m2regex = /([\d]{1,4}(?:[.,]\d{1,3})?)\s*m[²2]/gi;
+                    var m2match;
+                    while ((m2match = m2regex.exec(cardText)) !== null) {
+                        var mval = parseArArea(m2match[1]);
+                        if (mval > 5 && mval < 5000) { areaNum = mval; break; }
+                    }
                 }
 
                 // ── Ambientes ────────────────────────────────────────────
                 var ambs = null;
-                var ambMatch = cardText.match(/(\d+)\s*amb/i);
+                var ambSrc = altText || cardText;
+                var ambMatch = ambSrc.match(/(\d+)\s*amb/i);
                 if (ambMatch) ambs = parseInt(ambMatch[1]) || null;
+
+                // ── Cocheras ─────────────────────────────────────────────
+                var cars = null;
+                var carMatch = ambSrc.match(/(\d+)\s*coch/i);
+                if (carMatch) cars = parseInt(carMatch[1]) || null;
+
+                // ── Tipo desde alt ────────────────────────────────────────
+                var tipoCard = tipo;
+                if (altText) {
+                    var altLow = altText.toLowerCase();
+                    if (altLow.startsWith('departamento') || altLow.startsWith('depto')) tipoCard = 'departamento';
+                    else if (altLow.startsWith('casa'))      tipoCard = 'casa';
+                    else if (altLow.startsWith('ph'))        tipoCard = 'ph';
+                    else if (altLow.startsWith('local'))     tipoCard = 'local';
+                    else if (altLow.startsWith('terreno') || altLow.startsWith('lote')) tipoCard = 'terreno';
+                    else if (altLow.startsWith('oficina'))   tipoCard = 'oficina';
+                }
 
                 // ── Expensas ─────────────────────────────────────────────
                 var exp = null;
                 var expMatch = cardText.match(/exp[^$\d]*\$?\s*([\d.,]+)/i);
-                if (expMatch) exp = parseFloat(expMatch[1].replace(/\./g,'').replace(',','.')) || null;
+                if (expMatch) exp = parseArPrice(expMatch[1]);
 
                 // ── Dirección ────────────────────────────────────────────
                 var address = '';
@@ -460,14 +476,14 @@
                     ambientes:     ambs,
                     bedrooms:      null,
                     bathrooms:     null,
-                    garages:       null,
+                    garages:       cars,
                     expenses:      exp,
                     address:       address,
                     city:          city,
                     zone:          cardZone,
                     lat:           null,
                     lng:           null,
-                    property_type: tipo,
+                    property_type: tipoCard,
                     operation:     op,
                     url:           url,
                     scraped_at:    new Date().toISOString(),
