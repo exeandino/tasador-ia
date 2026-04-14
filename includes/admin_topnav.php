@@ -188,6 +188,17 @@ if (!empty($pdo)) {
        onclick="if(window.location.pathname.endsWith('admin.php')){event.preventDefault();showTab('config',this)}">
       ⚙️ <span>Config</span>
     </a>
+
+    <?php
+    // "Usuarios" solo visible para agency_admin y super_admin
+    if (!empty($user) && in_array($user['role'] ?? '', ['agency_admin','super_admin'])):
+    ?>
+    <div class="ta-nav-sep"></div>
+    <a href="admin_users.php"
+       class="ta-nav-link <?= $_nav_current==='users' ? 'active' : '' ?>">
+      👤 <span>Usuarios</span>
+    </a>
+    <?php endif; ?>
   </div>
 
   <div class="ta-nav-right">
