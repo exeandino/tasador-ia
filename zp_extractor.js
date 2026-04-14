@@ -302,47 +302,141 @@
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // FALLBACK DOM — si Next.js no tiene datos accesibles
+    // EXTRACTOR DOM — estructura actual de Zonaprop (2025)
     // ════════════════════════════════════════════════════════════════════════
     function tryDOM() {
-        var cards = document.querySelectorAll('[data-id],[data-posting-id],[id^="aviso-"],[class*="listing-card"],[class*="postingCard"],[class*="property-card"]');
+        // Zonaprop 2025: cada aviso es un article con data-id o data-qa="posting"
+        var cards = document.querySelectorAll([
+            'article[data-id]',
+            'article[data-qa="posting"]',
+            'div[data-qa="posting"]',
+            '[data-id][class*="Posting"]',
+            '[data-id][class*="posting"]',
+            'div[class*="postingCard"]',
+            'div[class*="PostingCard"]',
+        ].join(','));
+
         if (!cards || cards.length === 0) {
-            cards = document.querySelectorAll('article[class*="card"],article[class*="posting"],section[class*="listing"]');
+            cards = document.querySelectorAll('[data-id],[data-posting-id]');
         }
         if (!cards || cards.length === 0) return [];
 
-        console.log('[TasadorIA] Zonaprop DOM: encontré', cards.length, 'cards');
+        // Filtrar los que no son listings reales (anuncios, banners)
+        var realCards = Array.from(cards).filter(function(c) {
+            return c.querySelector('a[href*="/propiedades/"]') ||
+                   c.querySelector('a[href*="-venta-"]') ||
+                   c.querySelector('a[href*="-alquiler-"]') ||
+                   c.querySelector('[data-qa="posting-price"]') ||
+                   c.querySelector('[class*="Price"]');
+        });
+        if (realCards.length === 0) realCards = Array.from(cards);
+
+        console.log('[TasadorIA] Zonaprop DOM: procesando', realCards.length, 'cards');
+        if (realCards.length > 0) {
+            console.log('[TasadorIA] Primer card HTML (primeros 800 chars):', realCards[0].innerHTML.substring(0, 800));
+        }
+
         var results = [];
+        var city    = detectCity();
+        var zone    = detectZone();
+        var tipo    = detectTypeFromUrl();
+        var op      = detectOpFromUrl();
 
-        cards.forEach(function (card) {
+        realCards.forEach(function (card) {
             try {
-                // Precio
-                var priceEl  = card.querySelector('[class*="Price"],[class*="price"],[data-qa="posting-price"],[class*="precio"]');
-                var priceText = priceEl ? priceEl.textContent.trim() : '';
-                var priceNum  = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
-                if (!priceNum) return;
-                var currency  = priceText.includes('$') && !priceText.includes('U') ? 'ARS' : 'USD';
+                // ── Precio ──────────────────────────────────────────────
+                var priceText = '';
+                var priceSelectors = [
+                    '[data-qa="posting-price"]',
+                    '[class*="Price__price"]',
+                    '[class*="price-value"]',
+                    '[class*="Price-module"]',
+                    '[class*="postingPrice"]',
+                    '[class*="PostingPrice"]',
+                    'span[class*="price"]',
+                    'div[class*="price"]',
+                ];
+                for (var ps = 0; ps < priceSelectors.length; ps++) {
+                    var el = card.querySelector(priceSelectors[ps]);
+                    if (el && el.textContent.match(/\d/)) { priceText = el.textContent.trim(); break; }
+                }
+                // Si no encontró con selectores, buscar texto con $ o USD en el card
+                if (!priceText) {
+                    var allSpans = card.querySelectorAll('span,b,strong');
+                    for (var si = 0; si < allSpans.length; si++) {
+                        var st = allSpans[si].textContent.trim();
+                        if (/^(USD?|u\$s|\$)\s*[\d.,]+/i.test(st) || /[\d.,]+\s*(USD|U\$D)/i.test(st)) {
+                            priceText = st; break;
+                        }
+                    }
+                }
 
-                // Superficie
-                var areaEl   = card.querySelector('[class*="surface"],[class*="m2"],[class*="area"],[data-qa="posting-area"]');
-                var areaText = areaEl ? areaEl.textContent : '';
-                var areaNum  = parseFloat(areaText.replace(/[^\d.]/g, '')) || null;
+                var priceClean = priceText.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+                var priceNum   = parseFloat(priceClean) || 0;
+                if (!priceNum || priceNum < 1000) return; // descartar sin precio
 
-                // Dirección
-                var addrEl   = card.querySelector('[class*="address"],[class*="location"],[data-qa="posting-location"],[class*="Address"]');
-                var address  = addrEl ? addrEl.textContent.trim() : '';
+                var currency = (priceText.toUpperCase().includes('USD') ||
+                                priceText.includes('U$D') ||
+                                priceText.includes('u$s') ||
+                                (priceText.includes('$') && !priceText.includes('AR'))) ? 'USD' : 'ARS';
 
-                // Ambientes
-                var ambEl    = card.querySelector('[class*="room"],[class*="amb"],[data-qa*="room"]');
-                var ambs     = ambEl ? parseInt(ambEl.textContent) || null : null;
+                // ── Superficie ───────────────────────────────────────────
+                // Zonaprop 2025 muestra "65 m² tot." o "65 m² cub." en el card
+                var areaNum = null;
+                var cardText = card.textContent;
 
-                // URL
-                var linkEl   = card.querySelector('a[href]');
-                var url      = linkEl ? 'https://www.zonaprop.com.ar' + (linkEl.getAttribute('href') || '') : '';
+                // Buscar patrones "NNN m²" o "NNN m2" en todo el texto del card
+                var m2matches = cardText.match(/(\d+(?:[.,]\d+)?)\s*m[²2²]/gi) || [];
+                // El primer match razonable (5-5000) es la superficie
+                for (var mi = 0; mi < m2matches.length; mi++) {
+                    var mval = parseFloat(m2matches[mi].replace(',', '.').replace(/[^\d.]/g, ''));
+                    if (mval > 5 && mval < 5000) { areaNum = mval; break; }
+                }
+
+                // ── Ambientes ────────────────────────────────────────────
+                var ambs = null;
+                var ambMatch = cardText.match(/(\d+)\s*amb/i);
+                if (ambMatch) ambs = parseInt(ambMatch[1]) || null;
+
+                // ── Expensas ─────────────────────────────────────────────
+                var exp = null;
+                var expMatch = cardText.match(/exp[^$\d]*\$?\s*([\d.,]+)/i);
+                if (expMatch) exp = parseFloat(expMatch[1].replace(/\./g,'').replace(',','.')) || null;
+
+                // ── Dirección ────────────────────────────────────────────
+                var address = '';
+                var addrSelectors = [
+                    '[data-qa="posting-location"]',
+                    '[class*="Location"]',
+                    '[class*="location"]',
+                    '[class*="address"]',
+                    '[class*="Address"]',
+                ];
+                for (var as = 0; as < addrSelectors.length; as++) {
+                    var ael = card.querySelector(addrSelectors[as]);
+                    if (ael && ael.textContent.trim().length > 3) { address = ael.textContent.trim(); break; }
+                }
+
+                // ── Zona desde dirección ─────────────────────────────────
+                var cardZone = zone;
+                if (address) {
+                    // Ej: "Palermo, Capital Federal" → "Palermo"
+                    var zonePart = address.split(',')[0].trim();
+                    if (zonePart.length > 2) cardZone = zonePart;
+                }
+
+                // ── URL ──────────────────────────────────────────────────
+                var url = '';
+                var linkEl = card.querySelector('a[href*="/propiedades/"],a[href*=".html"]');
+                if (!linkEl) linkEl = card.querySelector('a[href]');
+                if (linkEl) {
+                    var href = linkEl.getAttribute('href') || '';
+                    url = href.startsWith('http') ? href : 'https://www.zonaprop.com.ar' + href;
+                }
 
                 results.push({
                     source:        SOURCE,
-                    title:         address,
+                    title:         address || url,
                     price:         priceNum,
                     currency:      currency,
                     covered_area:  areaNum,
@@ -350,20 +444,22 @@
                     bedrooms:      null,
                     bathrooms:     null,
                     garages:       null,
-                    expenses:      null,
+                    expenses:      exp,
                     address:       address,
-                    city:          detectCity(),
-                    zone:          detectZone(),
+                    city:          city,
+                    zone:          cardZone,
                     lat:           null,
                     lng:           null,
-                    property_type: detectTypeFromUrl(),
-                    operation:     detectOpFromUrl(),
+                    property_type: tipo,
+                    operation:     op,
                     url:           url,
                     scraped_at:    new Date().toISOString(),
                 });
-            } catch (e) {}
+            } catch (e) { console.warn('[TasadorIA] Error en card:', e); }
         });
 
+        console.log('[TasadorIA] DOM extraídos:', results.length,
+            '| con área:', results.filter(function(r){return r.covered_area > 0;}).length);
         return results;
     }
 
