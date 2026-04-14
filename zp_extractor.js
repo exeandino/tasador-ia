@@ -510,27 +510,84 @@
 
     function detectCity() {
         var u = window.location.pathname.toLowerCase();
-        if (u.includes('capital-federal') || u.includes('buenos-aires')) return 'Buenos Aires';
-        if (u.includes('santa-fe') || u.includes('santafe'))              return 'Santa Fe';
-        if (u.includes('rosario'))                                         return 'Rosario';
-        if (u.includes('cordoba'))                                         return 'Córdoba';
-        if (u.includes('mendoza'))                                         return 'Mendoza';
-        if (u.includes('mar-del-plata'))                                   return 'Mar del Plata';
-        return 'Santa Fe';
+        var title = (document.title || '').toLowerCase();
+        var h1    = (document.querySelector('h1') || {}).textContent || '';
+        var pageText = (u + ' ' + title + ' ' + h1).toLowerCase();
+
+        // CABA / Buenos Aires — barrios y nombres alternativos
+        var caba = [
+            'capital-federal','caba','buenos-aires',
+            'palermo','recoleta','belgrano','nunez','nuñez','colegiales',
+            'villa-crespo','almagro','caballito','flores','floresta',
+            'villa-del-parque','villa-urquiza','devoto','saavedra',
+            'san-telmo','la-boca','barracas','boedo','parque-patricios',
+            'monserrat','san-nicolas','retiro','puerto-madero',
+            'villa-pueyrredon','paternal','villa-general-mitre',
+            'constitucion','once','balvanera','villa-lugano','mataderos',
+            'liniers','versalles','monte-castro','velez-sarsfield',
+        ];
+        for (var i = 0; i < caba.length; i++) {
+            if (pageText.includes(caba[i])) return 'Buenos Aires';
+        }
+
+        // GBA
+        if (pageText.includes('san-isidro') || pageText.includes('san isidro'))   return 'San Isidro';
+        if (pageText.includes('vicente-lopez') || pageText.includes('vicente lópez')) return 'Vicente López';
+        if (pageText.includes('tigre') || pageText.includes('nordelta'))           return 'Tigre';
+        if (pageText.includes('san-martin') && !pageText.includes('santa'))        return 'San Martín';
+        if (pageText.includes('lomas-de-zamora'))                                  return 'Lomas de Zamora';
+        if (pageText.includes('quilmes'))                                           return 'Quilmes';
+        if (pageText.includes('avellaneda'))                                        return 'Avellaneda';
+        if (pageText.includes('la-plata') || pageText.includes('la plata'))        return 'La Plata';
+
+        // Interior
+        if (pageText.includes('santa-fe') || pageText.includes('santa fe'))        return 'Santa Fe';
+        if (pageText.includes('rosario'))                                           return 'Rosario';
+        if (pageText.includes('cordoba') || pageText.includes('córdoba'))          return 'Córdoba';
+        if (pageText.includes('mendoza'))                                           return 'Mendoza';
+        if (pageText.includes('mar-del-plata') || pageText.includes('mar del plata')) return 'Mar del Plata';
+        if (pageText.includes('tucuman') || pageText.includes('tucumán'))          return 'Tucumán';
+        if (pageText.includes('salta'))                                             return 'Salta';
+        if (pageText.includes('neuquen') || pageText.includes('neuquén'))          return 'Neuquén';
+        if (pageText.includes('bariloche'))                                         return 'Bariloche';
+        if (pageText.includes('posadas'))                                           return 'Posadas';
+
+        // Default: en Zonaprop sin match → probablemente CABA
+        return 'Buenos Aires';
     }
 
     function detectZone() {
         var u = window.location.pathname.toLowerCase();
         var map = {
-            'candioti-norte': 'Candioti Norte',
-            'candioti':       'Candioti Sur',
-            'microcentro':    'Centro',
-            'palermo':        'Palermo',
-            'recoleta':       'Recoleta',
-            'belgrano':       'Belgrano',
-            'nuñez':          'Núñez',
+            // CABA
+            'puerto-madero':    'Puerto Madero',
+            'palermo':          'Palermo',
+            'recoleta':         'Recoleta',
+            'belgrano':         'Belgrano',
+            'nunez':            'Núñez',
+            'nuñez':            'Núñez',
+            'colegiales':       'Colegiales',
+            'villa-crespo':     'Villa Crespo',
+            'almagro':          'Almagro',
+            'caballito':        'Caballito',
+            'flores':           'Flores',
+            'villa-urquiza':    'Villa Urquiza',
+            'devoto':           'Villa Devoto',
+            'saavedra':         'Saavedra',
+            'san-telmo':        'San Telmo',
+            'la-boca':          'La Boca',
+            'barracas':         'Barracas',
+            'boedo':            'Boedo',
+            'monserrat':        'Monserrat',
+            'retiro':           'Retiro',
+            // Santa Fe
+            'candioti-norte':   'Candioti Norte',
+            'candioti':         'Candioti Sur',
+            'microcentro':      'Centro',
             'villa-del-parque': 'Villa del Parque',
-            'alto-verde':     'Alto Verde',
+            'alto-verde':       'Alto Verde',
+            'el-pozo':          'El Pozo',
+            'costanera':        'Costanera',
         };
         for (var k in map) if (u.includes(k)) return map[k];
         return '';
