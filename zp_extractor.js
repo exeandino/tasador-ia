@@ -158,56 +158,85 @@
         }
         if (!price || price < 1000) return null;
 
-        // Superficie — intentar múltiples campos (Zonaprop cambia los nombres)
+        // Superficie — estrategia en cascada, auto-descubre el campo correcto
         var area = null;
 
-        // 1. Campos directos — estructura 2024/2025
+        // 1. Campos directos — nombres conocidos (viejo y nuevo)
         var areaFields = [
-            'roofedSurface','totalSurface','coveredSurface',   // nombres actuales
-            'roofedArea','coveredArea','totalArea',             // nombres viejos
-            'surface','superficieCubierta','superficieTotal','m2',
+            'roofedSurface','totalSurface','coveredSurface','builtSurface',
+            'roofedArea','coveredArea','totalArea','builtArea',
+            'surface','superficie','superficieCubierta','superficieTotal',
+            'squareMeters','sqm','m2','meters',
         ];
-        for (var i = 0; i < areaFields.length; i++) {
-            var v = parseFloat(p[areaFields[i]] || 0);
-            if (v > 5 && v < 5000) { area = v; break; }
+        for (var fi = 0; fi < areaFields.length; fi++) {
+            var fv = parseFloat(p[areaFields[fi]] || 0);
+            if (fv > 5 && fv < 5000) { area = fv; break; }
         }
 
-        // 2. Array "attributes" — Zonaprop guarda las features como [{id, value}]
-        if (!area && Array.isArray(p.attributes)) {
-            var surfaceIds = ['roofed_surface','total_surface','covered_surface','surface','superficie_cubierta','superficie_total'];
-            for (var a = 0; a < p.attributes.length; a++) {
-                var attr = p.attributes[a];
-                var attrId = (attr.id || attr.key || '').toLowerCase();
-                if (surfaceIds.some(function(s){ return attrId.includes(s) || attrId.includes('surface') || attrId.includes('m2'); })) {
-                    var numVal = parseFloat((attr.value || attr.valueLabel || '').toString().replace(/[^\d.]/g,'')) || 0;
-                    if (numVal > 5 && numVal < 5000) { area = numVal; break; }
-                }
-            }
-        }
-
-        // 3. Array "features" o "characteristics" alternativo
+        // 2. Array "attributes" [{id/key, value/valueLabel}]
         if (!area) {
-            var featArray = p.features || p.characteristics || p.detalles || [];
-            if (Array.isArray(featArray)) {
-                for (var f = 0; f < featArray.length; f++) {
-                    var feat = featArray[f];
-                    var fLabel = (feat.label || feat.name || feat.key || '').toLowerCase();
-                    if (fLabel.includes('m2') || fLabel.includes('surface') || fLabel.includes('superficie')) {
-                        var fVal = parseFloat((feat.value || feat.amount || '').toString().replace(/[^\d.]/g,'')) || 0;
-                        if (fVal > 5 && fVal < 5000) { area = fVal; break; }
+            var attrArrays = [p.attributes, p.features, p.characteristics, p.detalles, p.specs];
+            for (var ai = 0; ai < attrArrays.length; ai++) {
+                if (!Array.isArray(attrArrays[ai])) continue;
+                for (var aj = 0; aj < attrArrays[ai].length; aj++) {
+                    var attr = attrArrays[ai][aj];
+                    var attrKey = (attr.id || attr.key || attr.name || attr.label || '').toLowerCase();
+                    var isArea  = attrKey.includes('surface') || attrKey.includes('area') ||
+                                  attrKey.includes('m2') || attrKey.includes('sup') ||
+                                  attrKey.includes('meter') || attrKey.includes('sqm');
+                    if (isArea) {
+                        var attrVal = parseFloat(
+                            (attr.value || attr.valueLabel || attr.amount || attr.text || '')
+                            .toString().replace(/[^\d.]/g, '')
+                        ) || 0;
+                        if (attrVal > 5 && attrVal < 5000) { area = attrVal; break; }
                     }
                 }
+                if (area) break;
             }
         }
 
-        // 4. Último recurso: buscar en el texto del title/description
+        // 3. Escaneo automático: buscar CUALQUIER campo numérico razonable para superficie
+        //    — prioriza campos con 'surface'/'area'/'sup' en el nombre
         if (!area) {
-            var textBuscar = (p.title || p.description || p.titulo || '');
-            var m2match = textBuscar.match(/(\d+)\s*m[²2]/i);
-            if (m2match) {
-                var m2val = parseFloat(m2match[1]);
-                if (m2val > 5 && m2val < 5000) area = m2val;
-            }
+            var scanCandidates = [];
+            (function scanObj(obj, prefix, depth) {
+                if (!obj || typeof obj !== 'object' || depth > 3) return;
+                if (Array.isArray(obj)) return;
+                Object.keys(obj).forEach(function(k) {
+                    var fullKey = prefix ? prefix + '.' + k : k;
+                    var val = obj[k];
+                    if (typeof val === 'number' && val > 5 && val < 5000 && val === Math.floor(val)) {
+                        scanCandidates.push({ key: fullKey, val: val });
+                    } else if (typeof val === 'string') {
+                        var num = parseFloat(val.replace(/[^\d.]/g,''));
+                        if (num > 5 && num < 5000 && /^\d+(\.\d+)?\s*m/i.test(val.trim())) {
+                            scanCandidates.push({ key: fullKey, val: num });
+                        }
+                    } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+                        scanObj(val, fullKey, depth + 1);
+                    }
+                });
+            })(p, '', 0);
+
+            // Primero campos cuyo nombre sugiere superficie
+            var areaPriority = scanCandidates.filter(function(c) {
+                var k = c.key.toLowerCase();
+                return k.includes('surface') || k.includes('area') || k.includes('sup') ||
+                       k.includes('m2') || k.includes('sqm') || k.includes('meter');
+            });
+            // Si no, usar el primer entero razonable (>20m², típico para depto)
+            var areaFallback = scanCandidates.filter(function(c) { return c.val > 20 && c.val < 800; });
+
+            if (areaPriority.length)  { area = areaPriority[0].val;  console.log('[TasadorIA] área auto:', areaPriority[0]); }
+            else if (areaFallback.length) { area = areaFallback[0].val; console.log('[TasadorIA] área fallback:', areaFallback[0]); }
+        }
+
+        // 4. Regex en texto del aviso
+        if (!area) {
+            var textM2 = (p.title || p.description || p.titulo || p.address || '');
+            var m2rx   = textM2.match(/(\d{2,4})\s*m[²2]/i);
+            if (m2rx) { var m2v = parseFloat(m2rx[1]); if (m2v > 5 && m2v < 5000) area = m2v; }
         }
 
         // Ubicación
