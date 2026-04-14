@@ -117,9 +117,19 @@ foreach ($listings as $i => $row) {
         };
 
         $ppm2  = $area > 0 ? round($priceUSD / $area, 2) : null;
-        $extId = ($row['id'] ?? $row['external_id'] ?? null)
-               ? $source . '_' . ($row['id'] ?? $row['external_id'])
-               : null;
+
+        // external_id: usar el que manda el cliente, o generarlo desde la URL
+        // Necesario para que ON DUPLICATE KEY UPDATE funcione correctamente
+        $rawExtId = $row['external_id'] ?? $row['id'] ?? null;
+        if ($rawExtId) {
+            $extId = $source . '_' . $rawExtId;
+        } elseif (!empty($row['url'])) {
+            // Hash de la URL sin query params (igual que hace el JS)
+            $cleanUrl = strtok($row['url'], '?');
+            $extId    = 'zp_' . substr(md5($cleanUrl), 0, 12);
+        } else {
+            $extId = null;
+        }
 
         // Normalizar tipo
         $type = strtolower($row['property_type'] ?? $row['tipo'] ?? 'departamento');
