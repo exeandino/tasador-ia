@@ -161,7 +161,7 @@ foreach ($listings as $i => $row) {
             ':price_per_m2' => $ppm2,
             ':expenses'     => $row['expenses'] ?? $row['expensas'] ?? null,
             ':title'        => $row['title']    ?? $row['titulo']   ?? null,
-            ':scraped_at'   => $row['scraped_at'] ?? $row['fecha'] ?? date('Y-m-d H:i:s'),
+            ':scraped_at'   => date('Y-m-d H:i:s', strtotime($row['scraped_at'] ?? $row['fecha'] ?? 'now')),
         ]);
 
         $stmt->rowCount() > 0 ? $inserted++ : $updated++;

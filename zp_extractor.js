@@ -486,7 +486,7 @@
                     property_type: tipoCard,
                     operation:     op,
                     url:           url,
-                    scraped_at:    new Date().toISOString(),
+                    scraped_at:    mysqlNow(),
                 });
             } catch (e) { console.warn('[TasadorIA] Error en card:', e); }
         });
@@ -689,6 +689,14 @@
         if (o.includes('alq') || o === 'rent' || o === 'rental') return 'alquiler';
         if (o.includes('tmp') || o.includes('temporad'))          return 'temporario';
         return 'venta';
+    }
+
+    // Fecha en formato MySQL: "2026-04-14 14:44:06"
+    function mysqlNow() {
+        var d = new Date();
+        var pad = function(n){ return n < 10 ? '0'+n : n; };
+        return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '
+              +pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
     }
 
     function showOverlay(msg) {
