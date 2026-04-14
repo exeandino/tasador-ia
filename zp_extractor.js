@@ -391,7 +391,7 @@
                         continue;
                     }
                 }
-                if (!priceToken) continue; // sin precio, saltar card
+                if (!priceToken) return; // sin precio, saltar card
 
                 // Extraer solo los dígitos del token de precio (ya es un solo precio)
                 var numStr = priceToken.replace(/[^0-9.,]/g, '').trim();
