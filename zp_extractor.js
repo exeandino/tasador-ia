@@ -450,14 +450,6 @@
                     if (ael && ael.textContent.trim().length > 3) { address = ael.textContent.trim(); break; }
                 }
 
-                // ── Zona desde dirección ─────────────────────────────────
-                var cardZone = zone;
-                if (address) {
-                    // Ej: "Palermo, Capital Federal" → "Palermo"
-                    var zonePart = address.split(',')[0].trim();
-                    if (zonePart.length > 2) cardZone = zonePart;
-                }
-
                 // ── URL ──────────────────────────────────────────────────
                 var url = '';
                 var linkEl = card.querySelector('a[href*="/propiedades/"],a[href*=".html"]');
@@ -465,11 +457,34 @@
                 if (linkEl) {
                     var href = linkEl.getAttribute('href') || '';
                     url = href.startsWith('http') ? href : 'https://www.zonaprop.com.ar' + href;
+                    // Limpiar parámetros de tracking para deduplicar correctamente
+                    url = url.split('?')[0];
                 }
+
+                // ── Zona: URL slug es más confiable que el DOM ────────────
+                // Usar detectZone() (del slug URL) como fuente primaria.
+                // Solo usar la dirección si la URL no tiene zona específica.
+                var cardZone = zone; // zone = detectZone() ya calculado arriba
+                if (!cardZone && address) {
+                    var parts = address.split(',');
+                    // El último segmento antes de la ciudad suele ser el barrio
+                    if (parts.length >= 2) cardZone = parts[parts.length - 2].trim();
+                }
+
+                // ── Limpiar address (quitar concatenación sin espacio) ────
+                // "Azopardo al 700Puerto Madero" → "Azopardo al 700, Puerto Madero"
+                var cleanAddress = address
+                    .replace(/(\d)([A-ZÁÉÍÓÚ])/g, '$1, $2')   // "700Puerto" → "700, Puerto"
+                    .replace(/([a-záéíóú])([A-ZÁÉÍÓÚ])/g, '$1, $2') // "maderoRetiro" → "madero, Retiro"
+                    .trim();
+
+                // ── external_id desde URL (para deduplicar) ──────────────
+                var extId = url ? hashStr(url) : null;
 
                 results.push({
                     source:        SOURCE,
-                    title:         address || url,
+                    external_id:   extId,
+                    title:         cleanAddress || url,
                     price:         priceNum,
                     currency:      currency,
                     covered_area:  areaNum,
@@ -478,7 +493,7 @@
                     bathrooms:     null,
                     garages:       cars,
                     expenses:      exp,
-                    address:       address,
+                    address:       cleanAddress,
                     city:          city,
                     zone:          cardZone,
                     lat:           null,
@@ -689,6 +704,13 @@
         if (o.includes('alq') || o === 'rent' || o === 'rental') return 'alquiler';
         if (o.includes('tmp') || o.includes('temporad'))          return 'temporario';
         return 'venta';
+    }
+
+    // Hash simple de string → id corto (para external_id de deduplicación)
+    function hashStr(s) {
+        var h = 0;
+        for (var i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+        return 'zp_' + Math.abs(h).toString(36);
     }
 
     // Fecha en formato MySQL: "2026-04-14 14:44:06"
