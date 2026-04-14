@@ -95,6 +95,8 @@
                 var items = deepGet(json, rutas[i]);
                 if (Array.isArray(items) && items.length > 0) {
                     console.log('[TasadorIA] Zonaprop: encontré ' + items.length + ' items en ruta:', rutas[i].join('.'));
+                    // Log del primer item para diagnóstico
+                    console.log('[TasadorIA] Primer item raw:', JSON.stringify(items[0], null, 2));
                     var parsed = items.map(parseZPItem).filter(Boolean);
                     if (parsed.length > 0) return parsed;
                 }
@@ -156,35 +158,91 @@
         }
         if (!price || price < 1000) return null;
 
-        // Superficie — intentar múltiples campos
+        // Superficie — intentar múltiples campos (Zonaprop cambia los nombres)
         var area = null;
-        var areaFields = ['roofedArea','coveredArea','totalArea','surface','superficieCubierta','superficieTotal','m2'];
+
+        // 1. Campos directos — estructura 2024/2025
+        var areaFields = [
+            'roofedSurface','totalSurface','coveredSurface',   // nombres actuales
+            'roofedArea','coveredArea','totalArea',             // nombres viejos
+            'surface','superficieCubierta','superficieTotal','m2',
+        ];
         for (var i = 0; i < areaFields.length; i++) {
             var v = parseFloat(p[areaFields[i]] || 0);
             if (v > 5 && v < 5000) { area = v; break; }
         }
 
+        // 2. Array "attributes" — Zonaprop guarda las features como [{id, value}]
+        if (!area && Array.isArray(p.attributes)) {
+            var surfaceIds = ['roofed_surface','total_surface','covered_surface','surface','superficie_cubierta','superficie_total'];
+            for (var a = 0; a < p.attributes.length; a++) {
+                var attr = p.attributes[a];
+                var attrId = (attr.id || attr.key || '').toLowerCase();
+                if (surfaceIds.some(function(s){ return attrId.includes(s) || attrId.includes('surface') || attrId.includes('m2'); })) {
+                    var numVal = parseFloat((attr.value || attr.valueLabel || '').toString().replace(/[^\d.]/g,'')) || 0;
+                    if (numVal > 5 && numVal < 5000) { area = numVal; break; }
+                }
+            }
+        }
+
+        // 3. Array "features" o "characteristics" alternativo
+        if (!area) {
+            var featArray = p.features || p.characteristics || p.detalles || [];
+            if (Array.isArray(featArray)) {
+                for (var f = 0; f < featArray.length; f++) {
+                    var feat = featArray[f];
+                    var fLabel = (feat.label || feat.name || feat.key || '').toLowerCase();
+                    if (fLabel.includes('m2') || fLabel.includes('surface') || fLabel.includes('superficie')) {
+                        var fVal = parseFloat((feat.value || feat.amount || '').toString().replace(/[^\d.]/g,'')) || 0;
+                        if (fVal > 5 && fVal < 5000) { area = fVal; break; }
+                    }
+                }
+            }
+        }
+
+        // 4. Último recurso: buscar en el texto del title/description
+        if (!area) {
+            var textBuscar = (p.title || p.description || p.titulo || '');
+            var m2match = textBuscar.match(/(\d+)\s*m[²2]/i);
+            if (m2match) {
+                var m2val = parseFloat(m2match[1]);
+                if (m2val > 5 && m2val < 5000) area = m2val;
+            }
+        }
+
         // Ubicación
         var loc   = p.postingLocation || p.location || p.ubicacion || {};
-        var city  = loc.city?.name || loc.ciudad?.name || loc.ciudad || detectCity();
-        var zone  = loc.neighborhood?.name || loc.barrio?.name || loc.barrio || loc.zona || detectZone();
-        var lat   = parseFloat(loc.lat || loc.latitude || p.lat || 0) || null;
-        var lng   = parseFloat(loc.lon || loc.lng || loc.longitude || p.lng || 0) || null;
+        var city  = (loc.city && (loc.city.name || loc.city)) || (loc.ciudad && (loc.ciudad.name || loc.ciudad)) || detectCity();
+        var zone  = (loc.neighborhood && (loc.neighborhood.name || loc.neighborhood)) || (loc.barrio && (loc.barrio.name || loc.barrio)) || loc.zona || detectZone();
+        var lat   = parseFloat(loc.lat || loc.latitude || (loc.geo && loc.geo.lat) || p.lat || 0) || null;
+        var lng   = parseFloat(loc.lon || loc.lng || loc.longitude || (loc.geo && loc.geo.lon) || p.lng || 0) || null;
 
         // Tipo de operación
         var op    = normOp(p.operationType || p.operation || p.tipoOperacion || '');
-        var tipo  = normType(p.propertyType || p.type || p.tipo || '');
+        var tipo  = normType(p.propertyType || p.type || p.tipo || p.propertyTypeName || '');
 
-        // Ambientes
+        // Ambientes — también puede estar en attributes
         var ambs  = parseInt(p.ambiences || p.rooms || p.ambientes || p.totalRooms || 0) || null;
+        if (!ambs && Array.isArray(p.attributes)) {
+            var ambAttr = p.attributes.find(function(a){ return (a.id||'').toLowerCase().includes('room') || (a.id||'').toLowerCase().includes('amb'); });
+            if (ambAttr) ambs = parseInt(ambAttr.value) || null;
+        }
         var beds  = parseInt(p.bedrooms  || p.dormitorios || 0) || null;
         var baths = parseInt(p.bathrooms || p.banos || 0) || null;
         var cars  = parseInt(p.parkingLots || p.garages || p.cocheras || 0) || null;
 
         // Expensas
         var exp   = null;
-        if (p.expenses) exp = parseFloat(p.expenses.amount || p.expenses || 0) || null;
-        else if (p.maintenanceFee) exp = parseFloat(p.maintenanceFee) || null;
+        if (p.expenses) {
+            exp = typeof p.expenses === 'object'
+                ? parseFloat(p.expenses.amount || p.expenses.value || 0) || null
+                : parseFloat(p.expenses) || null;
+        } else if (p.maintenanceFee) {
+            exp = parseFloat(p.maintenanceFee) || null;
+        } else if (Array.isArray(p.attributes)) {
+            var expAttr = p.attributes.find(function(a){ return (a.id||'').toLowerCase().includes('expens') || (a.id||'').toLowerCase().includes('maintenance'); });
+            if (expAttr) exp = parseFloat((expAttr.value||'').replace(/[^\d.]/g,'')) || null;
+        }
 
         // URL
         var url = '';
