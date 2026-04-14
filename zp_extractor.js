@@ -342,54 +342,71 @@
         var tipo    = detectTypeFromUrl();
         var op      = detectOpFromUrl();
 
+        // ── Helpers de parseo formato argentino ─────────────────────────────
+        // "85.000" → 85000 | "1.200.000" → 1200000 | "85,5" → 85.5
+        function parseArPrice(s) {
+            s = s.trim().replace(/\s/g, '');
+            // Patrón miles con punto: dígitos separados por grupos de 3 después del punto
+            if (/^\d{1,3}(\.\d{3})+$/.test(s)) return parseFloat(s.replace(/\./g, ''));
+            // Coma decimal: "85,5"
+            if (/,/.test(s)) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+            return parseFloat(s) || 0;
+        }
+
+        function parseArArea(s) {
+            s = (s || '').trim().replace(/\s/g, '');
+            // "1.200" → miles → 1200
+            if (/^\d{1,3}(\.\d{3})+$/.test(s)) return parseFloat(s.replace(/\./g, ''));
+            // "65,5" → decimal
+            if (/,/.test(s)) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+            return parseFloat(s) || 0;
+        }
+
         realCards.forEach(function (card) {
             try {
                 // ── Precio ──────────────────────────────────────────────
-                var priceText = '';
-                var priceSelectors = [
-                    '[data-qa="posting-price"]',
-                    '[class*="Price__price"]',
-                    '[class*="price-value"]',
-                    '[class*="Price-module"]',
-                    '[class*="postingPrice"]',
-                    '[class*="PostingPrice"]',
-                    'span[class*="price"]',
-                    'div[class*="price"]',
-                ];
-                for (var ps = 0; ps < priceSelectors.length; ps++) {
-                    var el = card.querySelector(priceSelectors[ps]);
-                    if (el && el.textContent.match(/\d/)) { priceText = el.textContent.trim(); break; }
-                }
-                // Si no encontró con selectores, buscar texto con $ o USD en el card
-                if (!priceText) {
-                    var allSpans = card.querySelectorAll('span,b,strong');
-                    for (var si = 0; si < allSpans.length; si++) {
-                        var st = allSpans[si].textContent.trim();
-                        if (/^(USD?|u\$s|\$)\s*[\d.,]+/i.test(st) || /[\d.,]+\s*(USD|U\$D)/i.test(st)) {
-                            priceText = st; break;
-                        }
+                // Estrategia: buscar el LEAF más pequeño que contenga el precio
+                // para evitar concatenar USD + ARS del mismo contenedor
+                var priceNum = 0, currency = 'USD';
+
+                // 1. Buscar leaf-span/b que empiece con USD/U$D/$
+                var allLeafs = card.querySelectorAll('span,b,strong,p');
+                var priceToken = '';
+                for (var li = 0; li < allLeafs.length; li++) {
+                    var leaf = allLeafs[li];
+                    // Solo elementos "hoja" (sin hijos de tipo element) o con pocos hijos
+                    var txt = leaf.childElementCount === 0 ? leaf.textContent.trim()
+                            : Array.from(leaf.childNodes)
+                                   .filter(function(n){ return n.nodeType === 3; })
+                                   .map(function(n){ return n.textContent; })
+                                   .join('').trim();
+                    if (!txt) continue;
+                    // ¿Parece un precio? Empieza con moneda o tiene patrón numérico
+                    if (/^(USD|U\$D|u\$s)\s*[\d.,]+/i.test(txt) || /^[\d.,]+\s*(USD|U\$D)/i.test(txt)) {
+                        priceToken = txt; currency = 'USD'; break;
+                    }
+                    if (/^\$\s*[\d.,]+/.test(txt) && !/USD/i.test(txt)) {
+                        priceToken = txt; currency = 'ARS';
+                        // Seguir buscando por si hay un USD después
+                        continue;
                     }
                 }
+                if (!priceToken) continue; // sin precio, saltar card
 
-                var priceClean = priceText.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
-                var priceNum   = parseFloat(priceClean) || 0;
-                if (!priceNum || priceNum < 1000) return; // descartar sin precio
-
-                var currency = (priceText.toUpperCase().includes('USD') ||
-                                priceText.includes('U$D') ||
-                                priceText.includes('u$s') ||
-                                (priceText.includes('$') && !priceText.includes('AR'))) ? 'USD' : 'ARS';
+                // Extraer solo los dígitos del token de precio (ya es un solo precio)
+                var numStr = priceToken.replace(/[^0-9.,]/g, '').trim();
+                priceNum = parseArPrice(numStr);
+                if (!priceNum || priceNum < 1000) return;
 
                 // ── Superficie ───────────────────────────────────────────
-                // Zonaprop 2025 muestra "65 m² tot." o "65 m² cub." en el card
                 var areaNum = null;
                 var cardText = card.textContent;
 
-                // Buscar patrones "NNN m²" o "NNN m2" en todo el texto del card
-                var m2matches = cardText.match(/(\d+(?:[.,]\d+)?)\s*m[²2²]/gi) || [];
-                // El primer match razonable (5-5000) es la superficie
-                for (var mi = 0; mi < m2matches.length; mi++) {
-                    var mval = parseFloat(m2matches[mi].replace(',', '.').replace(/[^\d.]/g, ''));
+                // Capturar número ANTES de "m²" o "m2" con soporte de miles (punto)
+                var m2regex = /([\d]{1,4}(?:[.,]\d{1,3})?)\s*m[²2]/gi;
+                var m2match;
+                while ((m2match = m2regex.exec(cardText)) !== null) {
+                    var mval = parseArArea(m2match[1]);
                     if (mval > 5 && mval < 5000) { areaNum = mval; break; }
                 }
 
