@@ -508,11 +508,31 @@
         return cur;
     }
 
+    // Parsea el slug de la URL de Zonaprop:
+    // "departamentos-venta-puerto-madero" → { city, zone, tipo, op }
+    function parseZpSlug() {
+        var filename = window.location.pathname.replace(/.*\//, '').replace('.html','').toLowerCase();
+
+        // Quitar prefijos de tipo de propiedad y operación
+        var tipoWords = ['departamentos','departamento','casas','casa','phs','ph',
+                         'locales','local','terrenos','terreno','oficinas','oficina',
+                         'galpones','galpon','cocheras','cochera','hoteles','hotel'];
+        var opWords   = ['venta','alquiler','alquiler-temporario','temporario'];
+
+        var slug = filename;
+        tipoWords.forEach(function(w){ slug = slug.replace(new RegExp('^' + w + '-?'), ''); });
+        opWords.forEach(function(w){   slug = slug.replace(new RegExp('^' + w + '-?'), ''); });
+        // slug ahora es solo la parte de ubicación, ej: "puerto-madero" o "palermo-capital-federal"
+
+        return slug;
+    }
+
     function detectCity() {
-        var u = window.location.pathname.toLowerCase();
-        var title = (document.title || '').toLowerCase();
-        var h1    = (document.querySelector('h1') || {}).textContent || '';
-        var pageText = (u + ' ' + title + ' ' + h1).toLowerCase();
+        var slug     = parseZpSlug();
+        var u        = window.location.pathname.toLowerCase();
+        var title    = (document.title || '').toLowerCase();
+        var h1       = (document.querySelector('h1') || {}).textContent || '';
+        var pageText = (slug + ' ' + u + ' ' + title + ' ' + h1).toLowerCase();
 
         // CABA / Buenos Aires — barrios y nombres alternativos
         var caba = [
@@ -557,39 +577,76 @@
     }
 
     function detectZone() {
-        var u = window.location.pathname.toLowerCase();
+        var slug = parseZpSlug();
         var map = {
             // CABA
-            'puerto-madero':    'Puerto Madero',
-            'palermo':          'Palermo',
-            'recoleta':         'Recoleta',
-            'belgrano':         'Belgrano',
-            'nunez':            'Núñez',
-            'nuñez':            'Núñez',
-            'colegiales':       'Colegiales',
-            'villa-crespo':     'Villa Crespo',
-            'almagro':          'Almagro',
-            'caballito':        'Caballito',
-            'flores':           'Flores',
-            'villa-urquiza':    'Villa Urquiza',
-            'devoto':           'Villa Devoto',
-            'saavedra':         'Saavedra',
-            'san-telmo':        'San Telmo',
-            'la-boca':          'La Boca',
-            'barracas':         'Barracas',
-            'boedo':            'Boedo',
-            'monserrat':        'Monserrat',
-            'retiro':           'Retiro',
+            'puerto-madero':        'Puerto Madero',
+            'palermo':              'Palermo',
+            'recoleta':             'Recoleta',
+            'belgrano':             'Belgrano',
+            'nunez':                'Núñez',
+            'nuñez':                'Núñez',
+            'colegiales':           'Colegiales',
+            'villa-crespo':         'Villa Crespo',
+            'almagro':              'Almagro',
+            'caballito':            'Caballito',
+            'flores':               'Flores',
+            'villa-urquiza':        'Villa Urquiza',
+            'villa-devoto':         'Villa Devoto',
+            'saavedra':             'Saavedra',
+            'san-telmo':            'San Telmo',
+            'la-boca':              'La Boca',
+            'barracas':             'Barracas',
+            'boedo':                'Boedo',
+            'monserrat':            'Monserrat',
+            'retiro':               'Retiro',
+            'villa-del-parque':     'Villa del Parque',
+            'villa-urquiza':        'Villa Urquiza',
+            'paternal':             'Paternal',
+            'chacarita':            'Chacarita',
+            'parque-chas':          'Parque Chas',
+            'villa-ortuzar':        'Villa Ortúzar',
+            'villa-pueyrredon':     'Villa Pueyrredón',
+            'parque-patricios':     'Parque Patricios',
+            'nueva-pompeya':        'Nueva Pompeya',
+            'constitucion':         'Constitución',
+            'balvanera':            'Balvanera',
+            'san-nicolas':          'San Nicolás',
+            'microcentro':          'Microcentro',
+            'villa-lugano':         'Villa Lugano',
+            'mataderos':            'Mataderos',
+            'liniers':              'Liniers',
+            'monte-castro':         'Monte Castro',
+            // GBA
+            'nordelta':             'Nordelta',
+            'martinez':             'Martínez',
+            'olivos':               'Olivos',
+            'florida':              'Florida',
+            'munro':                'Munro',
+            'boulogne':             'Boulogne',
             // Santa Fe
-            'candioti-norte':   'Candioti Norte',
-            'candioti':         'Candioti Sur',
-            'microcentro':      'Centro',
-            'villa-del-parque': 'Villa del Parque',
-            'alto-verde':       'Alto Verde',
-            'el-pozo':          'El Pozo',
-            'costanera':        'Costanera',
+            'candioti-norte':       'Candioti Norte',
+            'candioti-sur':         'Candioti Sur',
+            'candioti':             'Candioti Sur',
+            'alto-verde':           'Alto Verde',
+            'el-pozo':              'El Pozo',
+            'costanera':            'Costanera',
+            'villa-del-parque-sf':  'Villa del Parque',
+            'zona-sur':             'Zona Sur',
+            // Rosario
+            'pichincha':            'Pichincha',
+            'echesortu':            'Echesortu',
+            'fisherton':            'Fisherton',
+            'norte':                'Norte',
+            // Córdoba
+            'nueva-cordoba':        'Nueva Córdoba',
+            'cerro-de-las-rosas':   'Cerro de las Rosas',
+            'general-paz':          'General Paz',
         };
-        for (var k in map) if (u.includes(k)) return map[k];
+        // Buscar en el slug (más preciso que la URL completa)
+        for (var k in map) {
+            if (slug.includes(k)) return map[k];
+        }
         return '';
     }
 
