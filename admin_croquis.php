@@ -1,153 +1,17 @@
 <?php
-session_start();
-require_once __DIR__ . '/config/settings.php';
+/**
+ * TasadorIA — admin_croquis.php
+ * Generador de croquis / planos SVG para tasaciones.
+ * Requiere rol agency_admin o superior.
+ */
+$cfg = is_file(__DIR__.'/config/settings.php') ? require __DIR__.'/config/settings.php' : [];
+require __DIR__.'/auth/middleware.php';
+$user = requireRole($cfg, 'agency_admin');
 
-// Auth check
-$admin_pass = $cfg['admin_pass'] ?? $cfg['admin_password'] ?? 'anper2025';
-$is_authenticated = isset($_SESSION['ta_admin']) && $_SESSION['ta_admin'] === true;
-
-if (!$is_authenticated && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
-    if ($_POST['admin_password'] === $admin_pass) {
-        $_SESSION['ta_admin'] = true;
-        $is_authenticated = true;
-    } else {
-        $auth_error = 'Contraseña incorrecta';
-    }
-}
-
-// If not authenticated, show login form
-if (!$is_authenticated) {
-    ?>
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Croquis - Admin</title>
-        <style>
-            :root {
-                --bg: #0f0f0f;
-                --bg2: #181818;
-                --bg3: #222;
-                --surface: #1e1e1e;
-                --border: #2a2a2a;
-                --gold: #c9a84c;
-                --text: #e0e0e0;
-                --muted: #888;
-                --green: #4caf50;
-                --red: #f44336;
-                --blue: #4a8ff7;
-                --font: system-ui, -apple-system, sans-serif;
-            }
-
-            body {
-                font-family: var(--font);
-                background: var(--bg);
-                color: var(--text);
-                margin: 0;
-                padding: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-            }
-
-            .login-container {
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 40px;
-                width: 100%;
-                max-width: 400px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            }
-
-            .login-container h1 {
-                text-align: center;
-                font-size: 24px;
-                margin: 0 0 30px 0;
-                color: var(--gold);
-            }
-
-            .form-group {
-                margin-bottom: 20px;
-            }
-
-            .form-group label {
-                display: block;
-                margin-bottom: 8px;
-                font-size: 14px;
-                color: var(--text);
-            }
-
-            .form-group input {
-                width: 100%;
-                padding: 10px 12px;
-                border: 1px solid var(--border);
-                background: var(--bg2);
-                color: var(--text);
-                border-radius: 4px;
-                font-family: inherit;
-                font-size: 14px;
-                box-sizing: border-box;
-                transition: border-color 0.2s;
-            }
-
-            .form-group input:focus {
-                outline: none;
-                border-color: var(--gold);
-            }
-
-            .form-group button {
-                width: 100%;
-                padding: 10px;
-                background: var(--gold);
-                color: var(--bg);
-                border: none;
-                border-radius: 4px;
-                font-weight: 600;
-                cursor: pointer;
-                font-size: 14px;
-                transition: background 0.2s;
-            }
-
-            .form-group button:hover {
-                background: #dab855;
-            }
-
-            .error {
-                color: var(--red);
-                margin-bottom: 20px;
-                font-size: 14px;
-                text-align: center;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="login-container">
-            <h1>🏠 Croquis Admin</h1>
-            <?php if (isset($auth_error)): ?>
-                <div class="error"><?php echo htmlspecialchars($auth_error); ?></div>
-            <?php endif; ?>
-            <form method="POST">
-                <div class="form-group">
-                    <label for="password">Contraseña Admin</label>
-                    <input type="password" id="password" name="admin_password" placeholder="Ingrese contraseña" required autofocus>
-                </div>
-                <div class="form-group">
-                    <button type="submit">Acceder</button>
-                </div>
-            </form>
-        </div>
-    </body>
-    </html>
-    <?php
-    exit;
-}
-
-// Load top nav
+$brand        = $cfg['brand_name']    ?? 'TasadorIA';
+$color        = $cfg['primary_color'] ?? '#c9a84c';
 $currentPanel = 'croquis';
-include __DIR__ . '/includes/admin_topnav.php';
+$adminId      = (int)($user['id'] ?? 0);
 
 // Database connection
 try {
@@ -184,14 +48,14 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'save') {
                 SET title=?, address=?, city=?, zone=?, floor_data=?, total_m2=?, svg_preview=?, updated_at=NOW()
                 WHERE id=? AND admin_id=?
             ");
-            $stmt->execute([$title, $address, $city, $zone, json_encode($floor_data), $total_m2, $svg_preview, $croquis_id, $_SESSION['ta_admin_id'] ?? 0]);
+            $stmt->execute([$title, $address, $city, $zone, json_encode($floor_data), $total_m2, $svg_preview, $croquis_id, $adminId]);
         } else {
             // Create new
             $stmt = $pdo->prepare("
                 INSERT INTO property_croquis (title, address, city, zone, floor_data, total_m2, svg_preview, admin_id, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ");
-            $stmt->execute([$title, $address, $city, $zone, json_encode($floor_data), $total_m2, $svg_preview, $_SESSION['ta_admin_id'] ?? 0]);
+            $stmt->execute([$title, $address, $city, $zone, json_encode($floor_data), $total_m2, $svg_preview, $adminId]);
             $croquis_id = $pdo->lastInsertId();
         }
 
