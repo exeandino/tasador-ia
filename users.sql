@@ -138,6 +138,33 @@ ALTER TABLE tasaciones
     ADD COLUMN IF NOT EXISTS is_public  TINYINT(1)   DEFAULT 1,
     ADD INDEX IF NOT EXISTS idx_user_id (user_id);
 
+-- ── Historial de tasaciones por usuario (JSON completo guardado) ──
+-- Permite ver el historial sin recalcular; snapshot inmutable del resultado
+CREATE TABLE IF NOT EXISTS user_tasaciones (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT UNSIGNED NOT NULL,
+    tasacion_code   VARCHAR(20)  NOT NULL UNIQUE,    -- TA-XXXXXXXX
+    title           VARCHAR(200) DEFAULT NULL,        -- "Depto 65m² Candioti Norte"
+    city            VARCHAR(80)  DEFAULT NULL,
+    zone            VARCHAR(80)  DEFAULT NULL,
+    property_type   VARCHAR(40)  DEFAULT NULL,
+    operation       VARCHAR(20)  DEFAULT NULL,
+    covered_area    DECIMAL(8,1) DEFAULT NULL,
+    price_suggested DECIMAL(12,2) DEFAULT NULL,      -- USD
+    price_min       DECIMAL(12,2) DEFAULT NULL,
+    price_max       DECIMAL(12,2) DEFAULT NULL,
+    currency        VARCHAR(5)   DEFAULT 'USD',
+    input_json      JSON DEFAULT NULL,               -- parámetros de entrada
+    result_json     JSON DEFAULT NULL,               -- respuesta completa de valuar.php
+    is_favorite     TINYINT(1)   DEFAULT 0,
+    notes           TEXT         DEFAULT NULL,        -- notas privadas del usuario
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user      (user_id),
+    INDEX idx_code      (tasacion_code),
+    INDEX idx_city_zone (city, zone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ── Feature flags por tier ────────────────────────────────────
 -- Define qué puede hacer cada plan (consultado en runtime)
 CREATE TABLE IF NOT EXISTS tier_features (
