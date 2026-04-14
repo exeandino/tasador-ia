@@ -1,0 +1,379 @@
+/**
+ * TasadorIA — zp_extractor.js
+ * Extractor dedicado para Zonaprop.com.ar
+ * Funciona como bookmarklet: se inyecta desde el admin y corre en el contexto de Zonaprop.
+ *
+ * Bookmarklet:
+ * javascript:(function(){var s=document.createElement('script');s.src='https://anperprimo.com/tasador/zp_extractor.js?key=anper2025&t='+Date.now();document.head.appendChild(s);})();
+ */
+(function () {
+    'use strict';
+
+    var IMPORT_URL = 'https://anperprimo.com/tasador/api/import_market.php';
+    var ADMIN_KEY  = 'anper2025';
+    var SOURCE     = 'zonaprop_bm';
+
+    // ── 1. Extraer datos ────────────────────────────────────────────────────
+    var listings = [];
+
+    listings = tryNextData() || tryDOM();
+
+    if (!listings || listings.length === 0) {
+        alert('❌ TasadorIA · Zonaprop\n\nNo se encontraron propiedades.\n\nAsegurate de estar en una página de resultados (no en un aviso individual).\nEj: zonaprop.com.ar/departamentos-venta-santa-fe.html');
+        return;
+    }
+
+    // ── 2. Confirmar ────────────────────────────────────────────────────────
+    var conArea  = listings.filter(l => l.covered_area > 0).length;
+    var ppm2List = listings.filter(l => l.covered_area > 0 && l.price > 0).map(l => Math.round(l.price / l.covered_area));
+    var avgPpm2  = ppm2List.length ? Math.round(ppm2List.reduce((a, b) => a + b, 0) / ppm2List.length) : 0;
+    var city     = listings[0]?.city || detectCity();
+
+    if (!confirm(
+        '🏠 TasadorIA · Zonaprop\n\n'
+        + '✓ ' + listings.length + ' propiedades encontradas\n'
+        + '📍 Ciudad detectada: ' + city + '\n'
+        + '📐 Con superficie: ' + conArea + '/' + listings.length + '\n'
+        + (avgPpm2 ? '💵 Promedio: USD ' + avgPpm2.toLocaleString('es-AR') + '/m²\n' : '')
+        + '\n¿Enviar a TasadorIA?'
+    )) return;
+
+    // ── 3. Enviar ───────────────────────────────────────────────────────────
+    var overlay = showOverlay('⏳ Enviando ' + listings.length + ' propiedades…');
+
+    fetch(IMPORT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+        body: JSON.stringify({ source: SOURCE, listings: listings })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        overlay.style.borderColor = '#00c896';
+        overlay.innerHTML =
+            '<strong style="color:#c9a84c;font-size:16px">TasadorIA ✅</strong><br><br>'
+            + '<strong style="font-size:18px">' + (d.inserted || 0) + ' nuevas</strong> · '
+            + (d.updated || 0) + ' actualizadas<br>'
+            + (d.errors ? '⚠ ' + d.errors + ' errores<br>' : '')
+            + (avgPpm2 ? '📈 Promedio: $' + avgPpm2.toLocaleString('es-AR') + '/m²<br>' : '')
+            + '<small style="color:#888;margin-top:8px;display:block">Cierra en 5s</small>';
+        setTimeout(function () { overlay.remove(); }, 5000);
+    })
+    .catch(function (e) {
+        overlay.style.borderColor = '#ff4f6e';
+        overlay.innerHTML = '<strong style="color:#ff4f6e">❌ Error</strong><br>' + e.message
+            + '<br><small style="color:#888">Cierra en 8s</small>';
+        setTimeout(function () { overlay.remove(); }, 8000);
+    });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // EXTRACCIÓN NEXT.JS
+    // ════════════════════════════════════════════════════════════════════════
+    function tryNextData() {
+        try {
+            var el = document.getElementById('__NEXT_DATA__');
+            if (!el) return null;
+            var json = JSON.parse(el.textContent);
+
+            // Rutas conocidas donde Zonaprop guarda los listings (van cambiando)
+            var rutas = [
+                // 2025 - estructura actual
+                ['props', 'pageProps', 'postings'],
+                ['props', 'pageProps', 'listPostings'],
+                ['props', 'pageProps', 'searchResult', 'listings'],
+                ['props', 'pageProps', 'searchResult', 'postings'],
+                ['props', 'pageProps', 'results'],
+                ['props', 'pageProps', 'data', 'postings'],
+                ['props', 'pageProps', 'data', 'listings'],
+                // Fallbacks antiguos
+                ['props', 'initialProps', 'listPostings'],
+                ['props', 'initialProps', 'postings'],
+                ['props', 'initialProps', 'pageProps', 'listPostings'],
+                ['props', 'initialProps', 'pageProps', 'postings'],
+            ];
+
+            for (var i = 0; i < rutas.length; i++) {
+                var items = deepGet(json, rutas[i]);
+                if (Array.isArray(items) && items.length > 0) {
+                    console.log('[TasadorIA] Zonaprop: encontré ' + items.length + ' items en ruta:', rutas[i].join('.'));
+                    var parsed = items.map(parseZPItem).filter(Boolean);
+                    if (parsed.length > 0) return parsed;
+                }
+            }
+
+            // Búsqueda recursiva de arrays grandes que parecen listings
+            var found = searchForListings(json, 0);
+            if (found && found.length > 0) {
+                console.log('[TasadorIA] Zonaprop: encontré listings por búsqueda recursiva:', found.length);
+                return found.map(parseZPItem).filter(Boolean);
+            }
+
+        } catch (e) {
+            console.warn('[TasadorIA] Error parseando __NEXT_DATA__:', e);
+        }
+        return null;
+    }
+
+    // Navega recursivamente el JSON buscando arrays que parezcan listings
+    function searchForListings(obj, depth) {
+        if (!obj || typeof obj !== 'object' || depth > 8) return null;
+        if (Array.isArray(obj)) {
+            if (obj.length >= 3 && obj[0] && typeof obj[0] === 'object') {
+                // ¿Parece un listing? Tiene price o price.amount
+                var sample = obj[0];
+                if (sample.price !== undefined || sample.operationType !== undefined || sample.address !== undefined) {
+                    return obj;
+                }
+            }
+            for (var i = 0; i < Math.min(obj.length, 5); i++) {
+                var r = searchForListings(obj[i], depth + 1);
+                if (r) return r;
+            }
+        } else {
+            for (var key in obj) {
+                if (['_events','children','__N_SSP','buildId','runtimeConfig'].includes(key)) continue;
+                var r = searchForListings(obj[key], depth + 1);
+                if (r) return r;
+            }
+        }
+        return null;
+    }
+
+    function parseZPItem(p) {
+        if (!p || typeof p !== 'object') return null;
+
+        // Precio
+        var price = 0, currency = 'USD';
+        if (p.price) {
+            if (typeof p.price === 'object') {
+                price    = parseFloat(p.price.amount || p.price.value || p.price.total || 0);
+                currency = normCurrency(p.price.currency || p.price.moneda || 'USD');
+            } else {
+                price = parseFloat(p.price) || 0;
+            }
+        } else if (p.priceTotal) {
+            price    = parseFloat(p.priceTotal.amount || p.priceTotal || 0);
+            currency = normCurrency(p.priceTotal.currency || 'USD');
+        }
+        if (!price || price < 1000) return null;
+
+        // Superficie — intentar múltiples campos
+        var area = null;
+        var areaFields = ['roofedArea','coveredArea','totalArea','surface','superficieCubierta','superficieTotal','m2'];
+        for (var i = 0; i < areaFields.length; i++) {
+            var v = parseFloat(p[areaFields[i]] || 0);
+            if (v > 5 && v < 5000) { area = v; break; }
+        }
+
+        // Ubicación
+        var loc   = p.postingLocation || p.location || p.ubicacion || {};
+        var city  = loc.city?.name || loc.ciudad?.name || loc.ciudad || detectCity();
+        var zone  = loc.neighborhood?.name || loc.barrio?.name || loc.barrio || loc.zona || detectZone();
+        var lat   = parseFloat(loc.lat || loc.latitude || p.lat || 0) || null;
+        var lng   = parseFloat(loc.lon || loc.lng || loc.longitude || p.lng || 0) || null;
+
+        // Tipo de operación
+        var op    = normOp(p.operationType || p.operation || p.tipoOperacion || '');
+        var tipo  = normType(p.propertyType || p.type || p.tipo || '');
+
+        // Ambientes
+        var ambs  = parseInt(p.ambiences || p.rooms || p.ambientes || p.totalRooms || 0) || null;
+        var beds  = parseInt(p.bedrooms  || p.dormitorios || 0) || null;
+        var baths = parseInt(p.bathrooms || p.banos || 0) || null;
+        var cars  = parseInt(p.parkingLots || p.garages || p.cocheras || 0) || null;
+
+        // Expensas
+        var exp   = null;
+        if (p.expenses) exp = parseFloat(p.expenses.amount || p.expenses || 0) || null;
+        else if (p.maintenanceFee) exp = parseFloat(p.maintenanceFee) || null;
+
+        // URL
+        var url = '';
+        if (p.url) url = p.url.startsWith('http') ? p.url : 'https://www.zonaprop.com.ar' + p.url;
+        else if (p.link) url = p.link.startsWith('http') ? p.link : 'https://www.zonaprop.com.ar' + p.link;
+
+        return {
+            source:        SOURCE,
+            title:         p.title || p.titulo || p.address || p.direccion || '',
+            price:         price,
+            currency:      currency,
+            covered_area:  area,
+            ambientes:     ambs,
+            bedrooms:      beds,
+            bathrooms:     baths,
+            garages:       cars,
+            expenses:      exp,
+            address:       p.address || p.direccion || '',
+            city:          city,
+            zone:          zone,
+            lat:           lat,
+            lng:           lng,
+            property_type: tipo,
+            operation:     op,
+            url:           url,
+            scraped_at:    new Date().toISOString(),
+        };
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // FALLBACK DOM — si Next.js no tiene datos accesibles
+    // ════════════════════════════════════════════════════════════════════════
+    function tryDOM() {
+        var cards = document.querySelectorAll('[data-id],[data-posting-id],[id^="aviso-"],[class*="listing-card"],[class*="postingCard"],[class*="property-card"]');
+        if (!cards || cards.length === 0) {
+            cards = document.querySelectorAll('article[class*="card"],article[class*="posting"],section[class*="listing"]');
+        }
+        if (!cards || cards.length === 0) return [];
+
+        console.log('[TasadorIA] Zonaprop DOM: encontré', cards.length, 'cards');
+        var results = [];
+
+        cards.forEach(function (card) {
+            try {
+                // Precio
+                var priceEl  = card.querySelector('[class*="Price"],[class*="price"],[data-qa="posting-price"],[class*="precio"]');
+                var priceText = priceEl ? priceEl.textContent.trim() : '';
+                var priceNum  = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
+                if (!priceNum) return;
+                var currency  = priceText.includes('$') && !priceText.includes('U') ? 'ARS' : 'USD';
+
+                // Superficie
+                var areaEl   = card.querySelector('[class*="surface"],[class*="m2"],[class*="area"],[data-qa="posting-area"]');
+                var areaText = areaEl ? areaEl.textContent : '';
+                var areaNum  = parseFloat(areaText.replace(/[^\d.]/g, '')) || null;
+
+                // Dirección
+                var addrEl   = card.querySelector('[class*="address"],[class*="location"],[data-qa="posting-location"],[class*="Address"]');
+                var address  = addrEl ? addrEl.textContent.trim() : '';
+
+                // Ambientes
+                var ambEl    = card.querySelector('[class*="room"],[class*="amb"],[data-qa*="room"]');
+                var ambs     = ambEl ? parseInt(ambEl.textContent) || null : null;
+
+                // URL
+                var linkEl   = card.querySelector('a[href]');
+                var url      = linkEl ? 'https://www.zonaprop.com.ar' + (linkEl.getAttribute('href') || '') : '';
+
+                results.push({
+                    source:        SOURCE,
+                    title:         address,
+                    price:         priceNum,
+                    currency:      currency,
+                    covered_area:  areaNum,
+                    ambientes:     ambs,
+                    bedrooms:      null,
+                    bathrooms:     null,
+                    garages:       null,
+                    expenses:      null,
+                    address:       address,
+                    city:          detectCity(),
+                    zone:          detectZone(),
+                    lat:           null,
+                    lng:           null,
+                    property_type: detectTypeFromUrl(),
+                    operation:     detectOpFromUrl(),
+                    url:           url,
+                    scraped_at:    new Date().toISOString(),
+                });
+            } catch (e) {}
+        });
+
+        return results;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ════════════════════════════════════════════════════════════════════════
+    function deepGet(obj, path) {
+        var cur = obj;
+        for (var i = 0; i < path.length; i++) {
+            if (!cur || typeof cur !== 'object') return undefined;
+            cur = cur[path[i]];
+        }
+        return cur;
+    }
+
+    function detectCity() {
+        var u = window.location.pathname.toLowerCase();
+        if (u.includes('capital-federal') || u.includes('buenos-aires')) return 'Buenos Aires';
+        if (u.includes('santa-fe') || u.includes('santafe'))              return 'Santa Fe';
+        if (u.includes('rosario'))                                         return 'Rosario';
+        if (u.includes('cordoba'))                                         return 'Córdoba';
+        if (u.includes('mendoza'))                                         return 'Mendoza';
+        if (u.includes('mar-del-plata'))                                   return 'Mar del Plata';
+        return 'Santa Fe';
+    }
+
+    function detectZone() {
+        var u = window.location.pathname.toLowerCase();
+        var map = {
+            'candioti-norte': 'Candioti Norte',
+            'candioti':       'Candioti Sur',
+            'microcentro':    'Centro',
+            'palermo':        'Palermo',
+            'recoleta':       'Recoleta',
+            'belgrano':       'Belgrano',
+            'nuñez':          'Núñez',
+            'villa-del-parque': 'Villa del Parque',
+            'alto-verde':     'Alto Verde',
+        };
+        for (var k in map) if (u.includes(k)) return map[k];
+        return '';
+    }
+
+    function detectTypeFromUrl() {
+        var u = window.location.pathname.toLowerCase();
+        if (u.includes('departamento') || u.includes('depto')) return 'departamento';
+        if (u.includes('casa'))                                  return 'casa';
+        if (u.includes('ph'))                                    return 'ph';
+        if (u.includes('local') || u.includes('comercial'))     return 'local';
+        if (u.includes('terreno') || u.includes('lote'))        return 'terreno';
+        return 'departamento';
+    }
+
+    function detectOpFromUrl() {
+        var u = window.location.pathname.toLowerCase();
+        if (u.includes('alquiler') || u.includes('alquil')) return 'alquiler';
+        if (u.includes('venta'))                             return 'venta';
+        return 'venta';
+    }
+
+    function normCurrency(s) {
+        s = (s || '').toString().toUpperCase();
+        if (s.includes('AR') || s === 'ARS' || s === '$') return 'ARS';
+        return 'USD';
+    }
+
+    function normType(t) {
+        t = (t || '').toLowerCase();
+        if (t.includes('depto') || t.includes('apart') || t === 'apartment') return 'departamento';
+        if (t.includes('casa') || t === 'house')                              return 'casa';
+        if (t === 'ph')                                                        return 'ph';
+        if (t.includes('local') || t.includes('shop'))                        return 'local';
+        if (t.includes('terreno') || t.includes('land') || t.includes('lot')) return 'terreno';
+        if (t.includes('oficina') || t.includes('office'))                    return 'oficina';
+        return t || 'departamento';
+    }
+
+    function normOp(o) {
+        o = (o || '').toLowerCase();
+        if (o.includes('alq') || o === 'rent' || o === 'rental') return 'alquiler';
+        if (o.includes('tmp') || o.includes('temporad'))          return 'temporario';
+        return 'venta';
+    }
+
+    function showOverlay(msg) {
+        var el = document.createElement('div');
+        el.id  = 'ta-overlay';
+        el.style.cssText = [
+            'position:fixed','top:20px','right:20px','z-index:2147483647',
+            'background:#111','border:2px solid #c9a84c','border-radius:12px',
+            'padding:18px 22px','color:#eee','font-family:system-ui,sans-serif',
+            'font-size:14px','line-height:1.6','max-width:280px','text-align:center',
+            'box-shadow:0 8px 32px rgba(0,0,0,.7)',
+        ].join(';');
+        el.innerHTML = '<strong style="color:#c9a84c">TasadorIA 🏠</strong><br>' + msg;
+        document.body.appendChild(el);
+        return el;
+    }
+
+})();
